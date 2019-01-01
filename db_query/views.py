@@ -12,14 +12,12 @@ class DbQuerySimple(View):
 
 
 def table_data_as_json(request):
-    # return str(table_data(get_sql(request)))
     return json.dumps({
         "status": "OK",
         "table": request.GET.get('table'),
         "data": table_data(get_sql(request)),
     }, ensure_ascii=False)
 
-# return unicode(text).encode('iso-8859-1').decode('cp1252')
 
 def table_data(sql):
     cursor = connections['query_db'].cursor()
@@ -28,7 +26,14 @@ def table_data(sql):
 
 
 def get_sql(request):
-    return 'select * from {}'.format(request.GET.get('table'))
+    return 'select {} from {}'.format(columns_list(request), request.GET.get('table'))
+
+
+def columns_list(request):
+    columns = request.GET.get('columns')
+    if columns is None:
+        return '*'
+    return ', '.join(columns.split('~'))
 
 
 def dictfetchall(cursor):
