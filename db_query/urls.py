@@ -1,7 +1,7 @@
 from django.urls import path
-from db_query.views import DbQueryView
+from db_query.views import DbQuerySimple
 
 urlpatterns = [
-    path('simple/', DbQueryView.as_view()),
+    path('simple/', DbQuerySimple.as_view()),
 ]
 

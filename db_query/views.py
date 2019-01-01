@@ -5,7 +5,7 @@ from django.views import View
 from django.db import connections
 
 # Create your views here.
-class DbQueryView(View):
+class DbQuerySimple(View):
     def get(self, request):
         return HttpResponse(table_data_as_json(request), content_type="application/json")
 
