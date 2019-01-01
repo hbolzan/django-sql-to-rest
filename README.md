@@ -25,3 +25,19 @@ To run a simple query over a single table, pass the table name as query paramete
 ```
 http://127.0.0.1:8000/query/simple/?table=my_table_name
 ```
+
+### Query options
+*columns* - list of column names separeted by `~`. Limits the query result to specified columns.
+```
+http://127.0.0.1:8000/query/simple/?table=my_table_name&columns=id~name~age
+```
+
+*order* - list of column names separeted by `~`. Defines order by columns.
+```
+http://127.0.0.1:8000/query/simple/?table=my_table_name&columns=id~name~age&order=age~name
+```
+ 
+*where* - filter condition form query.
+```
+http://127.0.0.1:8000/query/simple/?table=my_table_name&columns=id~name~age&order=age~name~where=age > 18
+```
