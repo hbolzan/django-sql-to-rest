@@ -14,7 +14,7 @@ The aim of this project is provide an easy way to create an REST API. All you ne
 1. Clone this repository: `git clone https://github.com/hbolzan/django-sql-to-rest.git`.
 2. Switch to the project directory: `cd django-sql-to-rest`
 3. Install project requirements: `pip install -r requirements.txt`
-4. Run the development server: `python sql-to-rest.py runserver`
+4. Run the development server: `python manage.py runserver`
 5. Open a browser to `http://127.0.0.1:8000/`
 
 
