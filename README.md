@@ -39,5 +39,5 @@ http://127.0.0.1:8000/query/simple/?table=my_table_name&columns=id~name~age&orde
  
 *where* - filter condition form query.
 ```
-http://127.0.0.1:8000/query/simple/?table=my_table_name&columns=id~name~age&order=age~name~where=age > 18
+http://127.0.0.1:8000/query/simple/?table=my_table_name&columns=id~name~age&order=age~name&where=age > 18
 ```
