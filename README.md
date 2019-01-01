@@ -20,7 +20,7 @@ The aim of this project is provide an easy way to create an REST API. All you ne
 
 ## How to use
 
-### Simple query-in
+### Simple query
 To [:current-form :state new-state]run a simple query over a single table, pass the table name as query parameter to `/query/simple/` endpoint.
 ```
 http://127.0.0.1:8000/query/simple/?table=my_table_name
