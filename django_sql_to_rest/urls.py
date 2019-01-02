@@ -16,6 +16,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+admin.site.site_header = 'SQL To REST Administration'
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('query/', include('db_query.urls'))

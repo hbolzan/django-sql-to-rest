@@ -9,35 +9,48 @@ The aim of this project is provide an easy way to create an REST API. All you ne
 * Pip Python package manager.
 * Virtualenv (recommended).
 
-## To run it:
+## Getting started
 
 1. Clone this repository: `git clone https://github.com/hbolzan/django-sql-to-rest.git`.
-2. Switch to the project directory: `cd django-sql-to-rest`
+2. Switch to the project directory: `cd django-sql-to-rest`.
 3. Install project requirements: `pip install -r requirements.txt`
-4. Run the development server: `python manage.py runserver`
-5. Open a browser to `http://127.0.0.1:8000/`
+4. Create a new database in your database server for the default django connection.
+5. Create a `local_settings.py` file or modify the project `settings.py` `DATABASES` section to point to the project database and the query database.
+6. Run migrate to start system database: `python manage.py migrate`
+7. Set django superuser: `python manage.py createsuperuser`
+8. Run the development server: `python manage.py runserver`
+9. Point a browser to `http://127.0.0.1:8000/`
 
 
 ## How to use
 
-### Simple query
-To run a simple query over a single table, pass the table name as query parameter to `/query/simple/` endpoint.
+### Ad hoc queries
+To run the simplest ad hoc query over a single table, pass the table name as query parameter to `/query/adhoc/` endpoint.
 ```
-http://127.0.0.1:8000/query/simple/?table=my_table_name
+http://127.0.0.1:8000/query/adhoc/?table=my_table_name
 ```
 
-### Query options
+### Ad hoc query options
 *columns* - list of column names separeted by `~`. Limits the query result to specified columns.
 ```
-http://127.0.0.1:8000/query/simple/?table=my_table_name&columns=id~name~age
+http://127.0.0.1:8000/query/adhoc/?table=my_table_name&columns=id~name~age
 ```
 
 *order* - list of column names separeted by `~`. Defines order by columns.
 ```
-http://127.0.0.1:8000/query/simple/?table=my_table_name&columns=id~name~age&order=age~name
+http://127.0.0.1:8000/query/adhoc/?table=my_table_name&columns=id~name~age&order=age~name
 ```
  
 *where* - filter condition form query.
 ```
-http://127.0.0.1:8000/query/simple/?table=my_table_name&columns=id~name~age&order=age~name&where=age > 18
+http://127.0.0.1:8000/query/adhoc/?table=my_table_name&columns=id~name~age&order=age~name&where=age > 18
 ```
+
+### Persistent queries
+
+This is a work in progress. Create complex queries and their specific insert, update and delete corresponding queries.
+
+
+### Master detail relationships
+
+Not implemented yet.
