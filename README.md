@@ -36,7 +36,7 @@ http://127.0.0.1:8000/query/adhoc/?table=my_table_name
 http://127.0.0.1:8000/query/adhoc/?table=my_table_name&columns=id~name~age
 ```
 
-*order* - list of column names separeted by `~`. Defines order by columns.
+*order* - list of column names separeted by `~`. Defines `order by` columns.
 ```
 http://127.0.0.1:8000/query/adhoc/?table=my_table_name&columns=id~name~age&order=age~name
 ```
@@ -48,7 +48,7 @@ http://127.0.0.1:8000/query/adhoc/?table=my_table_name&columns=id~name~age&order
 
 ### Persistent queries
 
-This is a work in progress. Create complex queries and their specific insert, update and delete corresponding queries.
+This is a work in progress. Create complex queries and their corresponding insert, update and delete queries.
 
 
 ### Master detail relationships

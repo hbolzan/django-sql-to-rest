@@ -1,14 +1,36 @@
 import simplejson as json
 from django.utils.encoding import force_text
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.views import View
 from django.db import connections
+from db_query.models import PersistentQuery
 
 # Create your views here.
-class DbQuerySimple(View):
+class DbQueryAdhoc(View):
     def get(self, request):
         return HttpResponse(table_data_as_json(request), content_type="application/json")
+
+
+class DbQueryPersistent(View):
+    def get(self, request):
+        query = get_object_or_404(PersistentQuery, query_id=request.GET.get('query'))
+        return HttpResponse(
+            json.dumps({
+                "status": "OK",
+                "query": request.GET.get('query'),
+                "data": table_data(replace_query_params(query.sql_query, request)),
+            }, ensure_ascii=False),
+            content_type="application/json"
+        )
+
+
+def replace_query_params(sql, request):
+    """
+    Query parameters must use string format syntax
+    Example: select * from some_table where id = {id} and age > {min_age}
+    """
+    return sql.format(**request.GET)
 
 
 def table_data_as_json(request):

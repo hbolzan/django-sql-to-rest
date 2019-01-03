@@ -1,6 +1,7 @@
 from django.urls import path
-from db_query.views import DbQuerySimple
+from db_query.views import DbQueryAdhoc, DbQueryPersistent
 
 urlpatterns = [
-    path('adhoc/', DbQuerySimple.as_view()),
+    path('adhoc/', DbQueryAdhoc.as_view()),
+    path('persistent/', DbQueryPersistent.as_view()),
 ]
