@@ -54,7 +54,7 @@ To create a persistent query, point your browser to `http://127.0.0.1:8000/admin
 * *Query name*: a descriptive name to your persistent query.
 * *Query ID*: slugified version of query name. It will be filed automatically so you don't have to care about this.
 * *Insert PK*: this is the PK field that will be used to retrieve the inserted row after a POST. It must be qualified with schema and table name. If you will be inserting data into `people` table at `public` schema and the field `id` is the primary key you should fill Insert PK with `public.people/id`. If the table is in the default schema you really don't need to specify the schema.
-* *Query PK**: DEPRECATED
+* *Query PK*: DEPRECATED
 * *Description*: That's what the name says. Only a description.
 * *SQL Query*: Query used by `GET` method. If you need to pass any arguments into your query, use the python string format notation with named parameters. Example: `select * from people where age >= {min_age}`. When calling a persistente query, you can still apply `columns`, `where` and `order` parameters the same way you can do with adhoc queries.
 * *SQl Insert*: Query used by `POST` method to insert data. You can declare parameters the same way you do with *SQL Query*. Be aware that the query formatter won't quote string values automatically for you when replacing arguments, so you must quote the string arguments in yor query as in the example below: 
@@ -64,9 +64,9 @@ insert into people (name, age) values ('{name}', {age})
 * *SQL Update*: Query used by `PUT` method. Not implemented yet.
 * *SQL Delete*: Query user by `DELETE` method. Not implemented yet.
 
-### Executing the persistent queries
+### Executing persistent queries
 #### GET
-Pass all the arguments in the URL as query parameters. You **must** pass `query` that will tell the endpoint wich persistent query ID it should search for. You must als pass arguments corresponding to any parameters you have declared into your query. Suppose you have a persistent query with ID `people` and with a get query like `select * from people where age >= {min_age}`. The get URL must be something like
+Pass all the arguments in the URL as query parameters. You **must** pass `query` that will tell the endpoint wich persistent query ID it should search for. You must also pass arguments corresponding to any parameters you have declared into your query. Suppose you have a persistent query with ID `people` with a get query like `select * from people where age >= {min_age}`. The get URL must be something like
 ```
 http://127.0.0.1:8000/query/persistent/?query=people&min_age=21
 ```

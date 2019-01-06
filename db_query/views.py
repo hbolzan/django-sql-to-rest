@@ -29,28 +29,33 @@ class DbQueryPersistent(View):
         )
 
     def post(self, request):
-        post_data = json.loads(request.body)
-        print(post_data)
-        query = get_object_or_404(PersistentQuery, query_id=post_data.get('query'))
+        return self.post_or_put(request, "POST")
+
+    def put(self, request):
+        return self.post_or_put(request, "PUT")
+
+    def post_or_put(self, request, method):
+        request_data = json.loads(request.body)
+        query = get_object_or_404(PersistentQuery, query_id=request_data.get('query'))
+        sql = query.sql_insert if method == "POST" else query.sql_update
         return HttpResponse(
             persistent_query_data_as_json(
                 query.name,
-                get_insert_sql(query, post_data)
+                get_dml_sql(query, request_data, sql)
             ),
             content_type="application/json"
         )
 
 
-def get_insert_sql(query, post_data):
+def get_dml_sql(query, request_data, sql_dml):
     source, pk_field = query.insert_pk.split("/")
-    if pk_field in post_data:
-        pk_value = quoted_if_non_numeric(post_data[pk_field])
+    if pk_field in request_data:
+        pk_value = quoted_if_non_numeric(request_data[pk_field])
         sql_retrieve =  "; select * from {} where {} = {};".format(source, pk_field, pk_value)
     else:
-        pk_value = None
         sql_retrieve = "; select * from {} where {} = (select max({}) from {});".format(
             source, pk_field, pk_field, source)
-    return replace_query_params(query.sql_insert, post_data) + sql_retrieve
+    return replace_query_params(sql_dml, request_data) + sql_retrieve
 
 
 def quoted_if_non_numeric(s):
