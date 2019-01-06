@@ -29,24 +29,34 @@ class DbQueryPersistent(View):
         )
 
     def post(self, request):
-       query = get_object_or_404(PersistentQuery, query_id=request.POST.get('query'))
-       return HttpResponse(
-           persistent_query_data_as_json(
-               query.name,
-               exec_sql_with_result(get_insert_sql(query, request))
-           ),
-           content_type="application/json"
-       )
+        post_data = json.loads(request.body)
+        print(post_data)
+        query = get_object_or_404(PersistentQuery, query_id=post_data.get('query'))
+        return HttpResponse(
+            persistent_query_data_as_json(
+                query.name,
+                get_insert_sql(query, post_data)
+            ),
+            content_type="application/json"
+        )
 
 
-   insert_result = exec_sql_with_result(get_insert_sql(query, request))
+def get_insert_sql(query, post_data):
+    source, pk_field = query.insert_pk.split("/")
+    if pk_field in post_data:
+        pk_value = quoted_if_non_numeric(post_data[pk_field])
+        sql_retrieve =  "; select * from {} where {} = {};".format(source, pk_field, pk_value)
+    else:
+        pk_value = None
+        sql_retrieve = "; select * from {} where {} = (select max({}) from {});".format(
+            source, pk_field, pk_field, source)
+    return replace_query_params(query.sql_insert, post_data) + sql_retrieve
 
 
-def get_insert_sql(query, request):
-    source, field = query.insert_pk.split("/")
-    return replace_query_params(
-        query.sql_insert, request_data_to_dict(request.POST)
-    ) + "; select * from {} where {} = (select max({}) from {});".format(source, field, field, source)
+def quoted_if_non_numeric(s):
+    if type(s) == str:
+        return s if s.isnumeric() else "'{}'".format(s)
+    return s
 
 
 def apply_params_to_wrapped_sql(sql, columns, where, order_by):
