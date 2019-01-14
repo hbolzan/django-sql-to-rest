@@ -82,7 +82,17 @@ The `POST` method executes the insert query. Pass the arguments as json data in 
 curl -X POST "http://127.0.0.1:8000/query/persistent/" \
   -d '{"query": "people", "first_name": "John", "last_name": "Doe", "age": 34}'
 ```
-If it goes all well, the response will be the last record inserted. In this case, supposing the PK is an autoincrement integer field called `id`, the response will be the result from `select * from public.people where id = (select max(id) from public.people)`.
+If it goes all right, the response will be the last record inserted. In this case, supposing the PK is an autoincrement integer field called `id`, the response will be the result from `select * from public.people where id = (select max(id) from public.people)`.
+
+
+#### PUT
+The `PUT` method executes the update query. It works just like `POST`. The update query must refer to table primary key in it's where clause.
+
+```
+curl -X PUT "http://127.0.0.1:8000/query/persistent/" \
+  -d '{"query": "people", "id": 2, "first_name": "Jack"}'
+```
+
 
 ### Master detail relationships
 
