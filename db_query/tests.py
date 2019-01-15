@@ -32,7 +32,7 @@ class BuildCustomSQLTestCase(TestCase):
     def test_get_update_sql(self):
         request_data = {
             "pk": 5,
-            "update_data": {"a": 1, "b": "BE"}
+            "data": {"a": 1, "b": "BE"}
         }
 
         self.assertEqual(
@@ -51,7 +51,7 @@ class BuildSQLTestCase(TestCase):
     def test_build_update_sql(self):
         request_data = {
             "pk": 5,
-            "update_data": {"a": 1, "b": "BE"}
+            "data": {"a": 1, "b": "BE"}
         }
 
         self.assertEqual(
@@ -59,13 +59,12 @@ class BuildSQLTestCase(TestCase):
             "update teste set a = 1, b = 'BE' where id = 5"
         )
 
-    def test_build_update_sql_2(self):
-        request_data = {
+        request_data_b = {
             "pk": "char-id",
-            "update_data": {"a": 1, "b": "BE"}
+            "data": {"a": 1, "b": "BE"}
         }
 
         self.assertEqual(
-            views.build_update_sql("teste", request_data, "id"),
+            views.build_update_sql("teste", request_data_b, "id"),
             "update teste set a = 1, b = 'BE' where id = 'char-id'"
         )

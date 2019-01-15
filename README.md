@@ -57,12 +57,29 @@ To create a persistent query, point your browser to `http://127.0.0.1:8000/admin
 * *Query PK*: DEPRECATED
 * *Description*: That's what the name says. Only a description.
 * *SQL Query*: Query used by `GET` method. If you need to pass any arguments into your query, use the python string format notation with named parameters. Example: `select * from people where age >= {min_age}`. When calling a persistente query, you can still apply `columns`, `where` and `order` parameters the same way you can do with adhoc queries.
-* *SQl Insert*: Query used by `POST` method to insert data. You can declare parameters the same way you do with *SQL Query*. Be aware that the query formatter won't quote string values automatically for you when replacing arguments, so you must quote the string arguments in yor query as in the example below: 
+* *SQl Insert*: Query used by `POST` method to insert data. You can declare parameters the same way you do with *SQL Query*. The query formatter will quote string values automatically when replacing arguments, so you should not quote the string arguments in yor query. See the example below: 
 ```
-insert into people (name, age) values ('{name}', {age})
+insert into people (name, age) values ({name}, {age})
 ```
-* *SQL Update*: Query used by `PUT` method. Not implemented yet.
-* *SQL Delete*: Query user by `DELETE` method. Not implemented yet.
+
+If your primary key is not a serial integer and you have to provide a value, you can use the `{pk}` parameter instead of a parameter with the column name. 
+
+```
+insert into people (id, name, age) values ({pk}, {name}, {age})
+```
+
+* *SQL Update*: Query used by `PUT` method. Fill this field with a SQL update statement with parameters following the same rules applied to *SQL Insert*.
+
+```
+update people
+set first_name = {first_name}, last_name = {last_name}, age = {age} 
+where id = {pk}
+```
+
+* *SQL Delete*: Query user by `DELETE` method. Declare your delete statement in this field.
+```
+delete from people where id = {id}
+```
 
 ### Executing persistent queries
 #### GET
@@ -77,20 +94,29 @@ http://127.0.0.1:8000/query/persistent/?query=people&min_age=21&columns=first_na
 ```
 
 #### POST
-The `POST` method executes the insert query. Pass the arguments as json data in the request body, following the same rules applied to `GET` requests. To insert a new record into people persistent query, do something like this:
+The `POST` method executes the insert query. Pass the arguments as json data in the request body. The request body **must** contain `query` attribute with query ID and `data` attribute with data to be inserted. Optionally it may contain a `pk` attribute if your query doesn't have a serial integer field as primary key. If some argument is not provided, the query formatter will assign `null` to the corresponding column. To insert a new record into people persistent query, do something like this:
 ```
 curl -X POST "http://127.0.0.1:8000/query/persistent/" \
-  -d '{"query": "people", "first_name": "John", "last_name": "Doe", "age": 34}'
+    -d '{"query": "people", "data": {"first_name": "John", "last_name": "Doe", "age": 34}}'
 ```
 If it goes all right, the response will be the last record inserted. In this case, supposing the PK is an autoincrement integer field called `id`, the response will be the result from `select * from public.people where id = (select max(id) from public.people)`.
 
 
 #### PUT
-The `PUT` method executes the update query. It works just like `POST`. The update query must refer to table primary key in it's where clause.
+The `PUT` method executes the update query. It works just like `POST` except that the `pk` attribute **is mandatory**. The update query must refer to the primary key in it's where clause.
+
+Supposing the update query is
+```
+update people_table 
+set first_name = {first_name}, last_name = {last_name}, age = {age} 
+where id = {pk}
+```
+
+If you keep the params names exactly the same as the columns names in your update clause, you can pass only the fields that you want to change. The parameters that don't receive corresponding arguments will be replaced by the parameter name, so the column will be assigned to itself when updating.
 
 ```
 curl -X PUT "http://127.0.0.1:8000/query/persistent/" \
-  -d '{"query": "people", "id": 2, "first_name": "Jack"}'
+    -d '{"query": "people", "pk": 2, "data": {"id": 2, "first_name": "Jack"}}'
 ```
 
 
