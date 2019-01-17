@@ -46,8 +46,40 @@ class BuildCustomSQLTestCase(TestCase):
             "update my.table set x = x, a = 1, b = 'BE' where my_pk = 5"
         )
 
+    def test_get_insert_sql(self):
+        request_data = {
+            "data": {"a": 1, "b": "BE"}
+        }
 
-class BuildSQLTestCase(TestCase):
+        self.assertEqual(
+            views.get_insert_sql(None, "public.teste", "id", request_data),
+            "insert into public.teste (a, b) values (1, 'BE')"
+        )
+
+        custom_sql = "insert into my.table (a, b, c) values ({a}, {b}, {c})"
+        self.assertEqual(
+            views.get_insert_sql(custom_sql, "public.teste", "id", request_data),
+            "insert into my.table (a, b, c) values (1, 'BE', null)"
+        )
+
+    def test_get_delete_sql(self):
+        self.assertEqual(
+            views.get_delete_sql("delete from my.table where id = {pk}", "my.table", "id", 3),
+            "delete from my.table where id = 3"
+        )
+
+        self.assertEqual(
+            views.get_delete_sql("delete from teste.people where name = {pk}", "my.table", "name", "Fulano"),
+            "delete from teste.people where name = 'Fulano'"
+        )
+
+        self.assertEqual(
+            views.get_delete_sql(None, "my.table", "id", 3),
+            "delete from my.table where id = 3"
+        )
+
+
+class BuildUpdateSQLTestCase(TestCase):
     def test_build_update_sql(self):
         request_data = {
             "pk": 5,

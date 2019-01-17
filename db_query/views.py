@@ -40,36 +40,27 @@ class DbQueryPersistent(View):
     http_method_names = ["get", "post", "put", "delete"]
 
     def post(self, request):
-        print(POST)
-        return self.post_put_delete(request, POST)
+        return do_method(self, request, POST, get_insert_sql)
 
     def put(self, request):
+        return do_method(self, request, PUT, get_update_sql)
+
+    def do_method(self, request, method, get_sql_fn):
         request_data = json.loads(request.body)
         query = get_query_obj(request_data.get("query"))
         source, pk_field = query.insert_pk.split("/")
-        sql = get_update_sql(query.sql_update, source, pk_field, request_data)
-        sql_retrieve =  "; select * from {} where {} = {};".format(
-            source, pk_field, request_data.get("pk")
-        )
+        sql = get_sql_fn(custom_sql_by_method(query, method), source, pk_field, request_data)
+        sql_retrieve = get_sql_retrieve(source, pk_field, request_data)
         return HttpResponse(
             persistent_query_data_as_json(query.name, sql+sql_retrieve),
             content_type="application/json"
         )
 
     def delete(self, request, query, pk):
-        print(DELETE, query, pk)
-        return self.post_put_delete(request, DELETE, query, pk)
-
-    def post_put_delete(self, request, method, query_id=None, delete_pk=None):
         query = get_query_obj(query_id)
-        sql = custom_sql_by_method(query, method)
-        replace_sql_fn = get_delete_sql if method == DELETE else get_insert_or_update_sql
-        exec_fn = persistent_query_execute if method == DELETE else persistent_query_data_as_json
+        source, pk_field = query.insert_pk.split("/")
         return HttpResponse(
-            exec_fn(
-                query.name,
-                trace(replace_sql_fn(query, request, sql, delete_pk))
-            ),
+            persistent_query_execute(query.name, get_delete_sql(query.sql_delete, source, pk_field, pk)),
             content_type="application/json"
         )
 
@@ -94,6 +85,17 @@ def custom_sql_by_method(query, method):
     }[method]
 
 
+def get_sql_retrieve(source, pk_field, request_data):
+    pk_value = request_data.get("pk")
+    if pk_value:
+        return "; select * from {} where {} = {};".format(
+            source, pk_field, quoted_if_non_numeric(pk_value)
+        )
+    return "; select * from {} where {} = (select max({}) from {});".format(
+        source, pk_field, pk_field, source
+    )
+
+
 def get_insert_or_update_sql(query, request, sql_dml, delete_pk):
     request_data = json.loads(request.body)
     source, pk_field = query.insert_pk.split("/")
@@ -108,6 +110,8 @@ def get_insert_or_update_sql(query, request, sql_dml, delete_pk):
 
 def get_insert_sql(custom_sql, source, pk_field, request_data):
     pk_value = request_data.get("pk")
+    if custom_sql is None or not custom_sql.strip():
+        return build_insert_sql(source, request_data, pk_field)
     return replace_query_params(
         custom_sql.replace("{pk}", str(quoted_if_non_numeric(pk_value))),
         request_data.get("data"),
@@ -126,6 +130,27 @@ def get_update_sql(custom_sql, source, pk_field, request_data):
     )
 
 
+def get_delete_sql(custom_sql, source, pk_field, pk_value):
+    if custom_sql is None or not custom_sql.strip():
+        return build_delete_sql(source, pk_field, pk_value)
+    return replace_query_params(custom_sql, {"pk": pk_value}, REPLACE_WITH_NULL)
+
+
+def build_delete_sql(source, pk_field, pk_value):
+    return "delete from {} where {} = {}".format(source, pk_field, pk_value)
+    pass
+
+
+def build_insert_sql(table_name, request_data, pk_field_name):
+    data = request_data.get("data")
+    pk_value = request_data.get("pk", "null")
+    return "insert into {} ({}) values ({})".format(
+        table_name,
+        build_insert_columns_list(data),
+        build_insert_values_list(data)
+    )
+
+
 def build_update_sql(table_name, request_data, pk_field_name):
     data = request_data.get("data")
     pk_value = request_data.get("pk", "null")
@@ -134,6 +159,14 @@ def build_update_sql(table_name, request_data, pk_field_name):
         build_columns_assignments(data, pk_field_name),
         build_where(pk_field_name, pk_value)
     )
+
+
+def build_insert_columns_list(data):
+    return ", ".join([k for k, v in data.items()])
+
+
+def build_insert_values_list(data):
+    return ", ".join([str(quoted_if_non_numeric(v)) for k, v in data.items()])
 
 
 def build_columns_assignments(data, pk_field_name):
@@ -145,10 +178,6 @@ def build_columns_assignments(data, pk_field_name):
 
 def build_where(pk_field_name, pk_value):
     return "{} = {}".format(pk_field_name, quoted_if_non_numeric(pk_value))
-
-
-def get_delete_sql(query, request, sql, pk):
-    return replace_query_params(sql, {"pk": pk})
 
 
 def quoted_if_non_numeric(s):

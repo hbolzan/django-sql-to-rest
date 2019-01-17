@@ -81,6 +81,10 @@ where id = {pk}
 delete from people where id = {id}
 ```
 
+### Query Builder
+*SQL Insert*, *SQL Update* and *SQL Delete* fields may be left empty. When any of these fields is empty, corresponding statements will be built by the query builder based on data from *Insert PK* field.
+
+
 ### Executing persistent queries
 #### GET
 Pass all the arguments in the URL as query parameters. You **must** pass `query` that will tell the endpoint wich persistent query ID it should search for. You must also pass arguments corresponding to any parameters you have declared into your query. Suppose you have a persistent query with ID `people` with a get query like `select * from people where age >= {min_age}`. The get URL must be something like
