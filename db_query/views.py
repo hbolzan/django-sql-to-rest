@@ -65,11 +65,6 @@ class DbQueryPersistent(View):
         )
 
 
-def trace(x):
-    print(x)
-    return x
-
-
 def get_query_obj(query_id):
     return get_object_or_404(
         PersistentQuery,
@@ -214,11 +209,12 @@ def persistent_query_data_as_json(query_name, sql):
 
 def replace_query_params(sql, params, default_rule):
     """
-    Replace sql with params with string format.
+    Replace sql params using string format.
     * Expected keys missing in params will be replaced according to default_rule (key or null).
     * Non numeric values will be automatically quoted.
     * Query parameters must use string format syntax
-      Examples: select * from some_table where id = {id} and age > {min_age}
+      Example:
+          select * from some_table where id = {id} and age > {min_age}
     """
     return sql.format(**build_replace_dict(get_format_keys(sql), params, default_rule))
 
