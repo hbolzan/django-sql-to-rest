@@ -31,18 +31,17 @@ class BuildCustomSQLTestCase(TestCase):
 
     def test_get_update_sql(self):
         request_data = {
-            "pk": 5,
             "data": {"a": 1, "b": "BE"}
         }
 
         self.assertEqual(
-            views.get_update_sql(None, "public.teste", "id", request_data),
+            views.get_update_sql(None, "public.teste", "id", request_data, 5),
             "update public.teste set a = 1, b = 'BE' where id = 5"
         )
 
         custom_sql = "update my.table set x = {x}, a = {a}, b = {b} where my_pk = {pk}"
         self.assertEqual(
-            views.get_update_sql(custom_sql, "public.teste", "id", request_data),
+            views.get_update_sql(custom_sql, "public.teste", "id", request_data, 5),
             "update my.table set x = x, a = 1, b = 'BE' where my_pk = 5"
         )
 
@@ -52,13 +51,13 @@ class BuildCustomSQLTestCase(TestCase):
         }
 
         self.assertEqual(
-            views.get_insert_sql(None, "public.teste", "id", request_data),
+            views.get_insert_sql(None, "public.teste", "id", request_data, None),
             "insert into public.teste (a, b) values (1, 'BE')"
         )
 
         custom_sql = "insert into my.table (a, b, c) values ({a}, {b}, {c})"
         self.assertEqual(
-            views.get_insert_sql(custom_sql, "public.teste", "id", request_data),
+            views.get_insert_sql(custom_sql, "public.teste", "id", request_data, None),
             "insert into my.table (a, b, c) values (1, 'BE', null)"
         )
 
@@ -82,21 +81,19 @@ class BuildCustomSQLTestCase(TestCase):
 class BuildUpdateSQLTestCase(TestCase):
     def test_build_update_sql(self):
         request_data = {
-            "pk": 5,
             "data": {"a": 1, "b": "BE"}
         }
 
         self.assertEqual(
-            views.build_update_sql("teste", request_data, "id"),
+            views.build_update_sql("teste", request_data, "id", 5),
             "update teste set a = 1, b = 'BE' where id = 5"
         )
 
         request_data_b = {
-            "pk": "char-id",
             "data": {"a": 1, "b": "BE"}
         }
 
         self.assertEqual(
-            views.build_update_sql("teste", request_data_b, "id"),
+            views.build_update_sql("teste", request_data_b, "id", "char-id"),
             "update teste set a = 1, b = 'BE' where id = 'char-id'"
         )

@@ -87,22 +87,22 @@ delete from people where id = {id}
 
 ### Executing persistent queries
 #### GET
-Pass all the arguments in the URL as query parameters. You **must** pass `query` that will tell the endpoint wich persistent query ID it should search for. You must also pass arguments corresponding to any parameters you have declared into your query. Suppose you have a persistent query with ID `people` with a get query like `select * from people where age >= {min_age}`. The get URL must be something like
+Pass all the arguments in the URL as query parameters. You **must** pass the query id as part of the URL. This will tell the endpoint wich persistent query ID it should search for. You must also pass arguments corresponding to any parameters you have declared into your query. Suppose you have a persistent query with ID `people` with a get query like `select * from people where age >= {min_age}`. The get URL must be something like
 ```
-http://127.0.0.1:8000/query/persistent/?query=people&min_age=21
+http://127.0.0.1:8000/query/persistent/people/?min_age=21
 ```
 
 You can still pass the same parameters used in adhoc queries, as in
 ```
-http://127.0.0.1:8000/query/persistent/?query=people&min_age=21&columns=first_name~last_name~age&order=age desc
+http://127.0.0.1:8000/query/persistent/people/?min_age=21&columns=first_name~last_name~age&order=age desc
 ```
 
 #### POST
-The `POST` method executes the insert query. Pass the arguments as json data in the request body. The request body **must** contain `query` attribute with query ID and `data` attribute with data to be inserted. Optionally it may contain a `pk` attribute if your query doesn't have a serial integer field as primary key. If some argument is not provided, the query formatter will assign `null` to the corresponding column. To insert a new record into people persistent query, do something like this:
+The `POST` method executes the insert query. As in GET method, the requested URL must include the query id. The request body **must** contain `data` attribute with data to be inserted. Optionally it may contain a `pk` attribute if your query doesn't have a serial integer field as primary key. If some argument is not provided, the query formatter will assign `null` to the corresponding column. To insert a new record into people persistent query, do something like this:
 
 ```
-curl -X POST "http://127.0.0.1:8000/query/persistent/" \
-    -d '{"query": "people", "data": {"first_name": "John", "last_name": "Doe", "age": 34}}'
+curl -X POST "http://127.0.0.1:8000/query/persistent/people/" \
+    -d '{"data": {"first_name": "John", "last_name": "Doe", "age": 34}}'
 ```
 
 If it goes all right, the response will be the last record inserted. In this case, supposing the PK is an autoincrement integer field called `id`, the response will be the result from 
@@ -113,7 +113,7 @@ select * from public.people where id = (select max(id) from public.people)
 
 
 #### PUT
-The `PUT` method executes the update query. It works just like `POST` except that the `pk` attribute **is mandatory**. The update query must refer to the primary key in it's where clause.
+The `PUT` method executes the update query. It works just like `POST` except that the `pk` **is mandatory** and it must be part of the URL. The update query must refer to the primary key in it's where clause.
 
 If you keep the params names exactly the same as the columns names in your update clause, you can pass only the fields that you want to change. The parameters that don't receive corresponding arguments will be replaced by the parameter name, so the column will be assigned to itself when updating. 
 
@@ -128,8 +128,8 @@ where id = {pk}
 The following request
 
 ```
-curl -X PUT "http://127.0.0.1:8000/query/persistent/" \
-    -d '{"query": "people", "pk": 2, "data": {"id": 2, "first_name": "Jack"}}'
+curl -X PUT "http://127.0.0.1:8000/query/persistent/2/" \
+    -d '{"query": "people", "pk": 2, "data": {"first_name": "Jack"}}'
 ```
 
 will execute an update statement like this:

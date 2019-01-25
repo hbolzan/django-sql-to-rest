@@ -23,8 +23,8 @@ class DbQueryAdhoc(View):
 
 
 class DbQueryPersistent(View):
-    def get(self, request):
-        query = get_object_or_404(PersistentQuery, query_id=request.GET.get('query'))
+    def get(self, request, query_id):
+        query = get_object_or_404(PersistentQuery, query_id=query_id)
         columns = request.GET.get("columns")
         where = request.GET.get("where")
         order_by = request.GET.get("order")
@@ -39,30 +39,31 @@ class DbQueryPersistent(View):
 
     http_method_names = ["get", "post", "put", "delete"]
 
-    def post(self, request):
-        return do_method(self, request, POST, get_insert_sql)
+    def post(self, request, query_id):
+        return do_method(self, request, query_id, POST, get_insert_sql)
 
-    def put(self, request):
-        return do_method(self, request, PUT, get_update_sql)
+    def put(self, request, query_id, pk):
+        return do_method(self, request, query_id, PUT, get_update_sql, pk)
 
-    def do_method(self, request, method, get_sql_fn):
-        request_data = json.loads(request.body)
-        query = get_query_obj(request_data.get("query"))
-        source, pk_field = query.insert_pk.split("/")
-        sql = get_sql_fn(custom_sql_by_method(query, method), source, pk_field, request_data)
-        sql_retrieve = get_sql_retrieve(source, pk_field, request_data)
-        return HttpResponse(
-            persistent_query_data_as_json(query.name, sql+sql_retrieve),
-            content_type="application/json"
-        )
-
-    def delete(self, request, query, pk):
+    def delete(self, request, query_id, pk):
         query = get_query_obj(query_id)
         source, pk_field = query.insert_pk.split("/")
         return HttpResponse(
             persistent_query_execute(query.name, get_delete_sql(query.sql_delete, source, pk_field, pk)),
             content_type="application/json"
         )
+
+
+def do_method(self, request, query_id, method, get_sql_fn, pk_value=None):
+    request_data = json.loads(request.body)
+    query = get_query_obj(query_id)
+    source, pk_field = query.insert_pk.split("/")
+    sql = get_sql_fn(custom_sql_by_method(query, method), source, pk_field, request_data, pk_value)
+    sql_retrieve = get_sql_retrieve(source, pk_field, request_data)
+    return HttpResponse(
+        persistent_query_data_as_json(query.name, sql+sql_retrieve),
+        content_type="application/json"
+    )
 
 
 def get_query_obj(query_id):
@@ -91,19 +92,7 @@ def get_sql_retrieve(source, pk_field, request_data):
     )
 
 
-def get_insert_or_update_sql(query, request, sql_dml, delete_pk):
-    request_data = json.loads(request.body)
-    source, pk_field = query.insert_pk.split("/")
-    if pk_field in request_data:
-        pk_value = quoted_if_non_numeric(request_data[pk_field])
-        sql_retrieve =  "; select * from {} where {} = {};".format(source, pk_field, pk_value)
-    else:
-        sql_retrieve = "; select * from {} where {} = (select max({}) from {});".format(
-            source, pk_field, pk_field, source)
-    return replace_query_params(sql_dml, request_data) + sql_retrieve
-
-
-def get_insert_sql(custom_sql, source, pk_field, request_data):
+def get_insert_sql(custom_sql, source, pk_field, request_data, _):
     pk_value = request_data.get("pk")
     if custom_sql is None or not custom_sql.strip():
         return build_insert_sql(source, request_data, pk_field)
@@ -114,10 +103,9 @@ def get_insert_sql(custom_sql, source, pk_field, request_data):
     )
 
 
-def get_update_sql(custom_sql, source, pk_field, request_data):
-    pk_value = request_data.get("pk", "null")
+def get_update_sql(custom_sql, source, pk_field, request_data, pk_value):
     if custom_sql is None or not custom_sql.strip():
-        return build_update_sql(source, request_data, pk_field)
+        return build_update_sql(source, request_data, pk_field, pk_value)
     return replace_query_params(
         custom_sql.replace("{pk}", str(quoted_if_non_numeric(pk_value))),
         request_data.get("data"),
@@ -146,9 +134,8 @@ def build_insert_sql(table_name, request_data, pk_field_name):
     )
 
 
-def build_update_sql(table_name, request_data, pk_field_name):
+def build_update_sql(table_name, request_data, pk_field_name, pk_value):
     data = request_data.get("data")
-    pk_value = request_data.get("pk", "null")
     return 'update {} set {} where {}'.format(
         table_name,
         build_columns_assignments(data, pk_field_name),
