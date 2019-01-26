@@ -18,3 +18,10 @@ class PersistentQuery(models.Model):
     class Meta:
         verbose_name = "Persistent query"
         verbose_name_plural = "Persistent queries"
+
+
+class PersistentNestedQuery(models.Model):
+    parent = models.ForeignKey(PersistentQuery, on_delete=models.CASCADE, verbose_name="Parent query", related_name="nested_query")
+    child = models.ForeignKey(PersistentQuery, on_delete=models.CASCADE, verbose_name="Child query", related_name="parent_query")
+    attr_name = models.CharField("Attribute name", max_length=100, help_text="Name of attribute that will receive nested result")
+    related_field = models.CharField("Related field", max_length=100, help_text="Name of field related to parent PK")

@@ -27,13 +27,16 @@ class DbQueryPersistent(View):
         query = get_object_or_404(PersistentQuery, query_id=query_id)
         columns = request.GET.get("columns")
         where = request.GET.get("where")
+        depth = int(request.GET.get("depth", 0))
         order_by = request.GET.get("order")
-        sql = replace_query_params(query.sql_query, request_data_to_dict(request.GET))
+        sql = replace_query_params(query.sql_query, request_data_to_dict(request.GET), None)
+        data = get_children(
+            query,
+            exec_sql_with_result(apply_params_to_wrapped_sql(sql, columns, where, order_by)),
+            depth
+        )
         return HttpResponse(
-            persistent_query_data_as_json(
-                query.name,
-                apply_params_to_wrapped_sql(sql, columns, where, order_by)
-            ),
+            persistent_query_data_as_json(query.name, data),
             content_type="application/json"
         )
 
@@ -54,14 +57,31 @@ class DbQueryPersistent(View):
         )
 
 
+def get_children(parent_query, parent_data, depth):
+    if depth < 1:
+        return parent_data
+    return [get_current_row_children(row, parent_query, depth) for row in parent_data]
+
+
+def get_current_row_children(data_row, parent_query, depth):
+    _, parent_pk_field = parent_query.insert_pk.split("/")
+    parent_pk = data_row.get(parent_pk_field)
+    for nested_query in parent_query.nested_query.all():
+        base_sql = nested_query.child.sql_query
+        sql = base_sql.format(parent_pk=parent_pk)
+        data_row[nested_query.attr_name] = exec_sql_with_result(sql)
+    return data_row
+
+
 def do_method(self, request, query_id, method, get_sql_fn, pk_value=None):
     request_data = json.loads(request.body)
     query = get_query_obj(query_id)
     source, pk_field = query.insert_pk.split("/")
     sql = get_sql_fn(custom_sql_by_method(query, method), source, pk_field, request_data, pk_value)
     sql_retrieve = get_sql_retrieve(source, pk_field, request_data)
+    data = exec_sql_with_result(sql+sql_retrieve)
     return HttpResponse(
-        persistent_query_data_as_json(query.name, sql+sql_retrieve),
+        persistent_query_data_as_json(query.name, data),
         content_type="application/json"
     )
 
@@ -121,7 +141,6 @@ def get_delete_sql(custom_sql, source, pk_field, pk_value):
 
 def build_delete_sql(source, pk_field, pk_value):
     return "delete from {} where {} = {}".format(source, pk_field, pk_value)
-    pass
 
 
 def build_insert_sql(table_name, request_data, pk_field_name):
@@ -186,11 +205,11 @@ def persistent_query_execute(query_name, sql):
     }, ensure_ascii=False)
 
 
-def persistent_query_data_as_json(query_name, sql):
+def persistent_query_data_as_json(query_name, data):
     return json.dumps({
         "status": "OK",
         "query": query_name,
-        "data": exec_sql_with_result(sql),
+        "data": data,
     }, ensure_ascii=False)
 
 
