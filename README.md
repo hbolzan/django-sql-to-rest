@@ -142,4 +142,33 @@ where id = 2
 
 ### Master detail relationships
 
-Not implemented yet.
+Persistent queries may include children queries. In the persistent query administration form, add a persistent nested query and fill in the following fields:
+* **Child query** - any persistent query object which *SQL Query* field contains a `{parent_pk}` parameter in it's where clause.
+* **Attribute name** - an attribute to receive the child data. It should not clash with any column name from the current query. Otherwise, the original attribute will be overriden.
+* **Related field** - the field in the child query that relates to the current (parent) query pk. When getting child data, the `{parent_pk}` parameter will be replaced by the current pk.
+
+#### How to use
+Currently, it's only possible to GET nested data. The GET request must include `depth` (default = 0) in the query arguments to inform how many levels of nesting depth must be included in the response.
+In the following example, the request for sales orders will return an order and it's items.
+
+```
+curl -X GET "http://127.0.0.1:8000/query/persistent/orders/?where=id=1&depth=1"
+```
+
+```
+{
+    "status": "OK", 
+    "query": "Orders", 
+    "data": [
+        {
+            "id": 1, 
+            "number": 19, 
+            "customer": 2, 
+            "items": [
+                {"id": 1, "order": 1, "description": "First item"}, 
+                {"id": 3, "order": 1, "description": "Second item"}
+            ]
+        }
+    ]
+}
+```

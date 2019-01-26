@@ -68,8 +68,8 @@ def get_current_row_children(data_row, parent_query, depth):
     parent_pk = data_row.get(parent_pk_field)
     for nested_query in parent_query.nested_query.all():
         base_sql = nested_query.child.sql_query
-        sql = base_sql.format(parent_pk=parent_pk)
-        data_row[nested_query.attr_name] = exec_sql_with_result(sql)
+        sql = base_sql.format(parent_pk=quoted_if_non_numeric(parent_pk))
+        data_row[nested_query.attr_name] = get_children(nested_query.child, exec_sql_with_result(sql), depth-1)
     return data_row
 
 
