@@ -1,7 +1,13 @@
-import simplejson as json
+import os
+import sys
+import re
+import importlib
 import pprint
 import string
+import simplejson as json
+from functools import reduce
 from django.utils.encoding import force_text
+from django.conf import settings
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.views import View
@@ -17,6 +23,20 @@ REPLACE_WITH_KEY = "K"
 REPLACE_WITH_NULL = "N"
 
 
+def load_middleware():
+    pysearchre = re.compile('.py$', re.IGNORECASE)
+    pluginfiles = filter(pysearchre.search,
+                           os.listdir(os.path.join(os.path.dirname(__file__),
+                                                 'middleware')))
+    package_name = os.path.dirname(__file__).split(os.sep)[-1] + ".middleware"
+    print(package_name)
+    form_module = lambda fp: '.' + os.path.splitext(fp)[0]
+    plugins = map(form_module, pluginfiles)
+    return {plugin.strip("."): importlib.import_module(plugin, package=package_name)
+            for plugin in plugins if not plugin.startswith('.__')}
+
+MIDDLEWARE = load_middleware()
+
 class DbQueryAdhoc(View):
     def get(self, request):
         return HttpResponse(table_data_as_json(request), content_type="application/json")
@@ -30,10 +50,13 @@ class DbQueryPersistent(View):
         depth = int(request.GET.get("depth", 0))
         order_by = request.GET.get("order")
         sql = replace_query_params(query.sql_query, request_data_to_dict(request.GET), None)
-        data = get_children(
-            query,
-            exec_sql_with_result(apply_params_to_wrapped_sql(sql, columns, where, order_by)),
-            depth
+        data = apply_middleware(
+            get_children(
+                query,
+                exec_sql_with_result(apply_params_to_wrapped_sql(sql, columns, where, order_by)),
+                depth
+            ),
+            request.GET.get("middleware")
         )
         return HttpResponse(
             persistent_query_data_as_json(query.name, data),
@@ -55,6 +78,13 @@ class DbQueryPersistent(View):
             persistent_query_execute(query.name, get_delete_sql(query.sql_delete, source, pk_field, pk)),
             content_type="application/json"
         )
+
+
+def apply_middleware(data, middleware):
+    if middleware is None:
+        return data
+    mw_fns = [MIDDLEWARE.get(mw).apply_middleware for mw in middleware.split("~")]
+    return reduce(lambda d, fn: fn(d), mw_fns, data)
 
 
 def get_children(parent_query, parent_data, depth):
@@ -223,6 +253,7 @@ def replace_query_params(sql, params, default_rule):
           select * from some_table where id = {id} and age > {min_age}
     """
     return sql.format(**build_replace_dict(get_format_keys(sql), params, default_rule))
+
 
 def build_replace_dict(expected_keys, params, default_rule):
     replace_dict = {}

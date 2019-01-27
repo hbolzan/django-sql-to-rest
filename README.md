@@ -147,7 +147,7 @@ Persistent queries may include children queries. In the persistent query adminis
 * **Attribute name** - an attribute to receive the child data. It should not clash with any column name from the current query. Otherwise, the original attribute will be overriden.
 * **Related field** - the field in the child query that relates to the current (parent) query pk. When getting child data, the `{parent_pk}` parameter will be replaced by the current pk.
 
-#### How to use
+#### Requesting nested data
 Currently, it's only possible to GET nested data. The GET request must include `depth` (default = 0) in the query arguments to inform how many levels of nesting depth must be included in the response.
 In the following example, the request for sales orders will return an order and it's items.
 
