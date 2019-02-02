@@ -18,6 +18,7 @@ from db_query.models import PersistentQuery
 DELETE = "DELETE"
 POST = "POST"
 PUT = "PUT"
+OPTIONS = "OPTIONS"
 
 REPLACE_WITH_KEY = "K"
 REPLACE_WITH_NULL = "N"
@@ -43,6 +44,14 @@ class DbQueryAdhoc(View):
 
 
 class DbQueryPersistent(View):
+    def __init__(self):
+        self.http_method_names = ['options', 'get', 'post', 'put', 'delete']
+
+    def options(self, request, id):
+        response = HttpResponse()
+        response['allow'] = ','.join([self.http_method_names])
+        return response
+
     def get(self, request, query_id):
         query = get_object_or_404(PersistentQuery, query_id=query_id)
         columns = request.GET.get("columns")
@@ -84,7 +93,7 @@ def apply_middleware(data, middleware):
     if middleware is None:
         return data
     mw_fns = [MIDDLEWARE.get(mw).apply_middleware for mw in middleware.split("~")]
-    return reduce(lambda d, fn: fn(d), mw_fns, data)
+    return reduce(lambda d, fn: fn(d, exec_sql_with_result), mw_fns, data)
 
 
 def get_children(parent_query, parent_data, depth):
