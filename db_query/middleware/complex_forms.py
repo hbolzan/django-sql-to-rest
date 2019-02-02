@@ -44,7 +44,9 @@ def adapt_complex_table(exec_sql_fn, raw_complex_table):
 def adapt_columns(raw_columns, exec_sql_fn):
     marked_raw_columns = mark_key_columns(raw_columns)
     key_columns = filter(lambda c: c.get("tipo") == LOOKUP_KEY, marked_raw_columns)
-    return [merge_lookup_column(c, key_columns, exec_sql_fn) for c in marked_raw_columns if c.get("tipo") != LOOKUP_KEY]
+    return [merge_lookup_column(c, key_columns, exec_sql_fn)
+            for c in marked_raw_columns
+            if c.get("tipo") != LOOKUP_KEY and c.get("visivel") == YES]
 
 
 def mark_key_columns(raw_columns):
@@ -99,8 +101,8 @@ def adapt_column(column):
         "default": default_value if default_value else None,
         "size": column.get("tamanho"),
         "width": column.get("largura"),
-        "lookup_key": column.get("lookup_campos_lookup"),
-        "lookup_result": column.get("lookup_campo_resultado"),
+        "lookup-key": column.get("lookup_campos_lookup"),
+        "lookup-result": column.get("lookup_campo_resultado"),
     }
 
 
