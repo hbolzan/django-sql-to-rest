@@ -128,8 +128,8 @@ where id = {pk}
 The following request
 
 ```
-curl -X PUT "http://127.0.0.1:8000/query/persistent/2/" \
-    -d '{"query": "people", "pk": 2, "data": {"first_name": "Jack"}}'
+curl -X PUT "http://127.0.0.1:8000/query/persistent/people/2/" \
+    -d '{"data": {"first_name": "Jack"}}'
 ```
 
 will execute an update statement like this:
