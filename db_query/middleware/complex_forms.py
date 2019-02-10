@@ -72,12 +72,14 @@ def merge_lookup_column(column, key_columns, exec_sql_fn):
     if column.get("tipo") == "L":
         key_field = column.get("lookup_campos_chave")
         try:
-            key_column = filter(lambda c: c.get("campo") == key_field, key_columns)
+            key_column = next(filter(lambda c: c.get("campo") == key_field, key_columns))
+            valor_default = key_column.get("valor_default")
             return dict(
                 adapt_column(column),
                 **{
                     "name": key_field,
-                    "options": process_lookup_options(column, exec_sql_fn)
+                    "default": valor_default if valor_default else None,
+                    "options": process_lookup_options(column, exec_sql_fn),
                 }
             )
         except IndexError:
