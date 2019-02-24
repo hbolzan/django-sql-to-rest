@@ -105,6 +105,7 @@ def adapt_column(column):
         "width": column.get("largura"),
         "lookup-key": column.get("lookup_campos_lookup"),
         "lookup-result": column.get("lookup_campo_resultado"),
+        "lookup-filter": column.get("lookup_filtro"),
     }
 
 

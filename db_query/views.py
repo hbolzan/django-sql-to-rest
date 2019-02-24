@@ -47,9 +47,9 @@ class DbQueryPersistent(View):
     def __init__(self):
         self.http_method_names = ['options', 'get', 'post', 'put', 'delete']
 
-    def options(self, request, id):
+    def options(self, request, query_id=None):
         response = HttpResponse()
-        response['allow'] = ','.join([self.http_method_names])
+        response['allow'] = ','.join(self.http_method_names)
         return response
 
     def get(self, request, query_id):
