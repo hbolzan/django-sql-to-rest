@@ -103,6 +103,7 @@ def adapt_column(column):
         "default": default_value if default_value else None,
         "size": column.get("tamanho"),
         "width": column.get("largura"),
+        "format-mask": column.get("mascara"),
         "lookup-key": column.get("lookup_campos_lookup"),
         "lookup-result": column.get("lookup_campo_resultado"),
         "lookup-filter": column.get("lookup_filtro"),
