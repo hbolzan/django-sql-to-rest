@@ -89,7 +89,7 @@ def merge_lookup_column(column, key_columns, exec_sql_fn):
 
 def adapt_column(column):
     default_value = str(column.get("valor_default", "")).strip()
-    return {
+    return dict({
         "order": column.get("ordem"),
         "name": column.get("campo"),
         "label": column.get("caption"),
@@ -103,11 +103,43 @@ def adapt_column(column):
         "default": default_value if default_value else None,
         "size": column.get("tamanho"),
         "width": column.get("largura"),
-        "format-mask": column.get("mascara"),
         "lookup-key": column.get("lookup_campos_lookup"),
         "lookup-result": column.get("lookup_campo_resultado"),
         "lookup-filter": column.get("lookup_filtro"),
+    }, **adapt_input_mask(column.get("mascara")))
+
+
+def adapt_input_mask(original_mask):
+    if not original_mask:
+        return {}
+    mask, maskchar = split_mask_and_maskchar(original_mask)
+    format_chars = {"9": "[0-9]", "a": "[A-Za-z]", "A": "[A-Z]", "*": "[A-Za-z0-9]"}
+    # TODO: peraments
+    return {
+        "mask": mask,
+        "mask-char": maskchar,
+        "format-chars": format_chars,
     }
+
+
+def split_mask_and_maskchar(original_mask):
+    mask_parts = original_mask.split(";")
+    try:
+        mask, maskchar = mask_parts
+    except ValueError:
+        mask = mask_parts[0]
+        maskchar = "_" if len(mask_parts) == 1 else mask_parts[-1]
+    return fix_mask(mask), maskchar
+
+
+def fix_mask(mask):
+    return mask.replace("dd/mm/yyyy", "99/99/9999") \
+        .replace("hh:nn", "99:99") \
+        .replace("hh:mm", "99:99") \
+        .replace("#", "9") \
+        .replace("0", "9") \
+        .replace(">", "") \
+        .replace("L", "A")
 
 
 def process_lookup_options(column, exec_sql_fn):
