@@ -12,6 +12,7 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.views import View
 from django.db import connections
+from django_sql_to_rest.common import trace
 from db_query.models import PersistentQuery
 
 
@@ -44,6 +45,9 @@ class DbQueryAdhoc(View):
 
 
 class DbQueryPersistent(View):
+
+    http_method_names = ["options", "get", "post", "put", "delete"]
+
     def __init__(self):
         self.http_method_names = ['options', 'get', 'post', 'put', 'delete']
 
@@ -71,8 +75,6 @@ class DbQueryPersistent(View):
             persistent_query_data_as_json(query.name, data),
             content_type="application/json"
         )
-
-    http_method_names = ["get", "post", "put", "delete"]
 
     def post(self, request, query_id):
         return do_method(self, request, query_id, POST, get_insert_sql)
@@ -107,7 +109,7 @@ def get_current_row_children(data_row, parent_query, depth):
     parent_pk = data_row.get(parent_pk_field)
     for nested_query in parent_query.nested_query.all():
         base_sql = nested_query.child.sql_query
-        sql = base_sql.format(parent_pk=quoted_if_non_numeric(parent_pk))
+        sql = base_sql.format(parent_pk=value_to_sql(parent_pk))
         data_row[nested_query.attr_name] = get_children(nested_query.child, exec_sql_with_result(sql), depth-1)
     return data_row
 
@@ -144,7 +146,7 @@ def get_sql_retrieve(source, pk_field, request_data):
     pk_value = request_data.get("pk")
     if pk_value:
         return "; select * from {} where {} = {};".format(
-            source, pk_field, quoted_if_non_numeric(pk_value)
+            source, pk_field, value_to_sql(pk_value)
         )
     return "; select * from {} where {} = (select max({}) from {});".format(
         source, pk_field, pk_field, source
@@ -154,9 +156,9 @@ def get_sql_retrieve(source, pk_field, request_data):
 def get_insert_sql(custom_sql, source, pk_field, request_data, _):
     pk_value = request_data.get("pk")
     if custom_sql is None or not custom_sql.strip():
-        return build_insert_sql(source, request_data, pk_field)
+        return trace(build_insert_sql(source, request_data, pk_field))
     return replace_query_params(
-        custom_sql.replace("{pk}", str(quoted_if_non_numeric(pk_value))),
+        custom_sql.replace("{pk}", value_to_sql(pk_value)),
         request_data.get("data"),
         REPLACE_WITH_NULL
     )
@@ -166,7 +168,7 @@ def get_update_sql(custom_sql, source, pk_field, request_data, pk_value):
     if custom_sql is None or not custom_sql.strip():
         return build_update_sql(source, request_data, pk_field, pk_value)
     return replace_query_params(
-        custom_sql.replace("{pk}", str(quoted_if_non_numeric(pk_value))),
+        custom_sql.replace("{pk}", value_to_sql(pk_value)),
         request_data.get("data"),
         REPLACE_WITH_KEY
     )
@@ -206,18 +208,24 @@ def build_insert_columns_list(data):
 
 
 def build_insert_values_list(data):
-    return ", ".join([str(quoted_if_non_numeric(v)) for k, v in data.items()])
+    return ", ".join([value_to_sql(v) for k, v in data.items()])
 
 
 def build_columns_assignments(data, pk_field_name):
     return ", ".join(
-        ["{} = {}".format(k, quoted_if_non_numeric(v))
+        ["{} = {}".format(k, value_to_sql(v))
          for k, v in data.items()]
     )
 
 
 def build_where(pk_field_name, pk_value):
-    return "{} = {}".format(pk_field_name, quoted_if_non_numeric(pk_value))
+    return "{} = {}".format(pk_field_name, value_to_sql(pk_value))
+
+
+def value_to_sql(value):
+    if value is None:
+        return 'null'
+    return str(quoted_if_non_numeric(value))
 
 
 def quoted_if_non_numeric(s):
@@ -271,7 +279,7 @@ def build_replace_dict(expected_keys, params, default_rule):
         if param_value is None:
             value = xk if default_rule == REPLACE_WITH_KEY else "null"
         else:
-            value = quoted_if_non_numeric(param_value)
+            value = value_to_sql(param_value)
         replace_dict[xk] = value
     return replace_dict
 

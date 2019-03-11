@@ -78,6 +78,7 @@ def merge_lookup_column(column, key_columns, exec_sql_fn):
                 adapt_column(column),
                 **{
                     "name": key_field,
+                    "data-type": DATA_TYPES.get(key_column.get("data_type"), "char"),
                     "default": valor_default if valor_default else None,
                     "options": process_lookup_options(column, exec_sql_fn),
                 }
