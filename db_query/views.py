@@ -156,7 +156,7 @@ def get_sql_retrieve(source, pk_field, request_data):
 def get_insert_sql(custom_sql, source, pk_field, request_data, _):
     pk_value = request_data.get("pk")
     if custom_sql is None or not custom_sql.strip():
-        return trace(build_insert_sql(source, request_data, pk_field))
+        return build_insert_sql(source, request_data, pk_field)
     return replace_query_params(
         custom_sql.replace("{pk}", value_to_sql(pk_value)),
         request_data.get("data"),
