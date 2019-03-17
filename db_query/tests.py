@@ -8,7 +8,7 @@ class BuildCustomSQLTestCase(TestCase):
 
     def test_build_replace_dict(self):
         result = views.build_replace_dict(["a", "b", "c"], {"a": 1, "b": 2, "c": 3, "d": 4}, None)
-        self.assertEqual(result, {"a": 1, "b": 2, "c": 3})
+        self.assertEqual(result, {"a": "1", "b": "2", "c": "3"})
 
     def test_replace_query_params(self):
         """

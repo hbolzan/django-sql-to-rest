@@ -45,10 +45,13 @@ def handle_service_request(service_name, method_name, *args, **kwargs):
         rpc_response = get_rpc_service_response(service_name, method_name, **kwargs)
         status = rpc_response.get("status")
         http_status = 409 if status == "ERROR" else 200
-        return get_service_response(http_status, status, rpc_response.get("messages"))
+        response = get_service_response(http_status, fix_service_response(rpc_response))
+        if not is_service_response_valid(response):
+            return get_bad_service_response(response)
+        return response
 
     except UnknownService:
-        return get_unknown_service_response()
+        return get_not_implemented_service_response()
 
 
 def get_rpc_service_response(service_name, method_name, *args, **kwargs):
@@ -57,32 +60,53 @@ def get_rpc_service_response(service_name, method_name, *args, **kwargs):
         return method(*args, **kwargs)
 
 
-def get_unknown_service_response():
+def get_not_implemented_service_response():
     return get_service_response(
-        404,
-        "ERROR",
-        {"en": "Unknown service", "pt-br": "Serviço não encontrado",}
+        501,
+        build_response_body("ERROR",  "Not implemented service",  "Serviço não implementado")
     )
 
 
-def get_service_response(http_status, status, messages):
+def get_bad_service_response(response):
+    return get_service_response(
+        500,
+        build_response_body(
+            "ERROR",
+            "Service response not compliant with API standards",
+            "Resposta do serviço solicitado fora do padrão da API",
+            response,
+        )
+    )
+
+
+def get_service_response(http_status, body):
     return {
         "http_status": http_status,
-        "body": {
+        "body": body,
+    }
+
+
+def is_service_response_valid(response):
+    if type(response) != dict:
+        return False
+    valid_status = "status" in response and response["status"] in ["OK", "ERROR"]
+    valid_data = "data" in response and \
+        "messages" in response["data"] and \
+        "en" in response["data"]["messages"] and "pt-br" in response["data"]["messages"]
+    return valid_status and valid_data
+
+
+def fix_service_response(response):
+    if type(response) == str:
+        return build_response_body("OK", response, response)
+    return response
+
+
+def build_response_body(status, message_en, message_ptbr, additional_info=None):
+    return dict(
+        {
             "status": status,
-            "data": messages_as_dict(messages),
-        }
-    }
-
-
-def messages_as_dict(messages):
-    if type(messages) != dict:
-        return {
-            "en": messages,
-            "pt-br": messages,
-        }
-    default_message = messages.get("pt-br", "Unknown error")
-    return {
-        "en": messages.get("en", default_message),
-        "pt-br": messages.get("pt-br", default_message),
-    }
+            "data": {"messages": {"en": message_en, "pt-br": message_ptbr}}
+        },
+        **({} if additional_info is None else {"additional_information": additional_info})
+    )
