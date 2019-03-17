@@ -27,15 +27,15 @@ REPLACE_WITH_NULL = "N"
 
 def load_middleware():
     pysearchre = re.compile('.py$', re.IGNORECASE)
-    pluginfiles = filter(pysearchre.search,
-                           os.listdir(os.path.join(os.path.dirname(__file__),
-                                                 'middleware')))
+    pluginfiles = filter(pysearchre.search, os.listdir(os.path.join(os.path.dirname(__file__), 'middleware')))
     package_name = os.path.dirname(__file__).split(os.sep)[-1] + ".middleware"
     print(package_name)
     form_module = lambda fp: '.' + os.path.splitext(fp)[0]
     plugins = map(form_module, pluginfiles)
-    return {plugin.strip("."): importlib.import_module(plugin, package=package_name)
-            for plugin in plugins if not plugin.startswith('.__')}
+    return {
+        plugin.strip("."): importlib.import_module(plugin, package=package_name)
+            for plugin in plugins if not plugin.startswith('.__')
+    }
 
 MIDDLEWARE = load_middleware()
 

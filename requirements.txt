@@ -6,3 +6,4 @@ pytz==2018.7
 six==1.12.0
 simplejson==3.16.0
 django-cors-headers==2.4.0
+nameko==2.11.0
