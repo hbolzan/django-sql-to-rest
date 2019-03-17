@@ -5,7 +5,7 @@ Quick and easy REST framework.
 The aim of this project is to provide an easy way to create a REST API. All you need is a SQL database. In it's simplest way, you just have to GET a table name and it will return the data as JSON.
 
 ## Requirements
-* Python 3.6.+ I didn't try with earlier versions. Please check requirements for Django 2.1.5.
+* Python 3.6.+ I didn't try with earlier versions. Please check requirements for Django 2.1.7.
 * Pip Python package manager.
 * Virtualenv (recommended).
 
