@@ -4,8 +4,7 @@ Quick and easy REST framework.
 
 The aim of this project is to provide an easy way to create a REST API. All you need is a SQL database. In it's simplest way, you just have to GET a table name and it will return the data as JSON.
 
-## Requirements
-* Python 3.6.+ I didn't try with earlier versions. Please check requirements for Django 2.1.7.
+## Requirements* Python 3.6.+ I didn't try with earlier versions. Please check requirements for Django 2.1.7.
 * Pip Python package manager.
 * Virtualenv (recommended).
 
@@ -181,4 +180,104 @@ curl -X GET "http://127.0.0.1:8000/query/persistent/orders/?where=id=1&depth=1"
         }
     ]
 }
+```
+
+### Microservices Integration
+
+This is a work in progress.
+
+It is possible to add functionality to the API through the `/service` endpoint. It makes `AMQP RPC` calls to running microservices.
+
+```
+http://localhost:8000/service/get/<service_name>/<method_name>/?param_1=value_1[&param_2=value_2 ...]
+```
+
+For instance, if the [common validations](https://github.com/hbolzan/sql-to-rest-common-validations) 
+service is running, the following call in the development server
+```
+http://localhost:8000/service/get/common_validations/cpf/?cpf_number=123.456.789-09
+```
+
+will return
+```
+{
+    "status": "OK", 
+    "data": {
+        "messages": {"en": "Valid CPF number", "pt-br": "Número válido de CPF"}, 
+        "additional_information": {"cpf": "123.456.789-09", "person_name": ""}
+    }
+}
+```
+
+#### Running a microservice in the development environment
+* Run RabbitMQ with docker exposing the default port
+```
+$ docker run -p 5672:5672 --hostname nameko-rabbitmq rabbitmq:3
+```
+
+* Install or update current project requirements
+```
+$ pip install -r requirements.txt
+```
+
+* Set environment variables. This step is optional in the development environment, since these are the default values.
+```
+$ export RABBIT_USER=guest
+$ export RABBIT_PASSWORD=guest
+$ export RABBIT_HOST=localhost
+$ export RABBIT_PORT=5672
+```
+
+* Run the development server
+```
+$ ./manage.py runserver
+```
+
+* Clone the service repository into your projects folder
+```
+$ cd /home/you_user/your/projects/
+$ git clone https://github.com/hbolzan/sql-to-rest-common-validations.git common_validations
+```
+
+* Start a virtualenv (recommended)
+```
+$ mkvirtualenv --python=`which python3` microservices
+```
+
+* Go to the service folder and install the requirements
+```
+$(microservices) cd common_validations
+$(microservices) pip install -r requirements.txt
+```
+
+* Run the service
+```
+$(microservices) nameko run services
+```
+
+#### Creating your own services
+
+In your `requirements.txt` include the following lines.
+```
+nameko==2.11.0
+git+https://github.com/hbolzan/sql-to-rest-services-common.git
+```
+
+Create a `services.py` file and start with this
+```
+from nameko.rpc import rpc
+from dstr_common_lib import responses
+
+
+class MyService
+    name = "some_unique_service"
+    
+    @rpc
+    def some_method(self, some_param):
+        # add your own logic here
+        # and return the results like this
+        return responses.common(
+            "OK",
+            {"en": "Message in English", "pt-br": "Mensagem em Português"},
+        )
 ```
