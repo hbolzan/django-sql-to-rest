@@ -45,10 +45,10 @@ def handle_service_request(service_name, method_name, *args, **kwargs):
         rpc_response = get_rpc_service_response(service_name, method_name, **kwargs)
         status = rpc_response.get("status")
         http_status = 409 if status == "ERROR" else 200
-        response = get_service_response(http_status, fix_service_response(rpc_response))
-        if not is_service_response_valid(response):
-            return get_bad_service_response(response)
-        return response
+        response_body = fix_service_response(rpc_response)
+        if not is_service_response_valid(response_body):
+            return get_bad_service_response(response_body)
+        return get_service_response(http_status, response_body)
 
     except UnknownService:
         return get_not_implemented_service_response()
@@ -103,10 +103,10 @@ def fix_service_response(response):
 
 
 def build_response_body(status, message_en, message_ptbr, additional_info=None):
-    return dict(
-        {
-            "status": status,
-            "data": {"messages": {"en": message_en, "pt-br": message_ptbr}}
-        },
-        **({} if additional_info is None else {"additional_information": additional_info})
-    )
+    return {
+        "status": status,
+        "data": dict(
+            {"messages": {"en": message_en, "pt-br": message_ptbr}},
+            **({} if additional_info is None else {"additional_information": additional_info})
+        )
+    }
