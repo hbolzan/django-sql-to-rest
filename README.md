@@ -281,3 +281,5 @@ class MyService
             {"en": "Message in English", "pt-br": "Mensagem em Português"},
         )
 ```
+
+You can see a working example at https://github.com/hbolzan/sql-to-rest-common-validations
