@@ -182,6 +182,8 @@ curl -X GET "http://127.0.0.1:8000/query/persistent/orders/?where=id=1&depth=1"
 }
 ```
 
+
+
 ### Microservices Integration
 
 This is a work in progress.
@@ -283,3 +285,8 @@ class MyService
 ```
 
 You can see a working example at https://github.com/hbolzan/sql-to-rest-common-validations
+
+
+### Microservices Based Validations
+
+Validations are the way of connecting frontend complex forms to services.

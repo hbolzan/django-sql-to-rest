@@ -1,4 +1,25 @@
+import time
 from django.db import models
+
+
+EXPIRATION_TIME = 60 # in seconds
+VALIDATION_CACHE = {}
+
+
+def get_validation(name):
+    cached_validation = VALIDATION_CACHE.get(name)
+    if not expired(cached_validation):
+        return cached_validation.get("validation")
+    return set_cache(name, FieldValidation.get(name=name))
+
+
+def expired(validation):
+    return (not validation) or time.time() - validation.get("time", 0) > EXPIRATION_TIME
+
+
+def set_cache(name, validation):
+    VALIDATION_CACHE[name] = {"time": time.time(), "validation": validation}
+    return validation
 
 
 class FieldValidation(models.Model):
