@@ -1,3 +1,5 @@
 from django.contrib import admin
+from services.models import FieldValidation
 
-# Register your models here.
+
+admin.site.register(FieldValidation)
