@@ -1,4 +1,6 @@
 import functools
+from services.models import get_validation
+
 
 YES = "S"
 NO = "N"
@@ -29,22 +31,22 @@ ALIGNMENTS = {
 
 
 def apply_middleware(raw_data, exec_sql_fn):
-    return list(map(functools.partial(adapt_complex_table, exec_sql_fn), raw_data))
+    return list(map(functools.partial(adapt_complex_table, exec_sql_fn, get_validation), raw_data))
 
 
-def adapt_complex_table(exec_sql_fn, raw_complex_table):
+def adapt_complex_table(exec_sql_fn, raw_complex_table, get_validation_fn):
     return {
         "id": raw_complex_table.get("id").replace("_", "-").lower(),
         "dataset-name": raw_complex_table.get("tabela_nome").split(";")[0],
         "title": raw_complex_table.get("descricao"),
-        "fields-defs": adapt_columns(raw_complex_table.get("columns"), exec_sql_fn),
+        "fields-defs": adapt_columns(raw_complex_table.get("columns"), exec_sql_fn, get_validation_fn),
     }
 
 
-def adapt_columns(raw_columns, exec_sql_fn):
+def adapt_columns(raw_columns, exec_sql_fn, get_validation_fn):
     marked_raw_columns = mark_key_columns(raw_columns)
     key_columns = filter(lambda c: c.get("tipo") == LOOKUP_KEY, marked_raw_columns)
-    return [merge_lookup_column(c, key_columns, exec_sql_fn)
+    return [merge_lookup_column(c, key_columns, exec_sql_fn, get_validation_fn)
             for c in marked_raw_columns
             if c.get("tipo") != LOOKUP_KEY and c.get("visivel") == YES]
 
@@ -67,7 +69,7 @@ def mark_key_column(column, lookup_columns_names):
     return column
 
 
-def merge_lookup_column(column, key_columns, exec_sql_fn):
+def merge_lookup_column(column, key_columns, exec_sql_fn, get_validation_fn):
     # find corresponding data column
     if column.get("tipo") == "L":
         key_field = column.get("lookup_campos_chave")
@@ -107,7 +109,15 @@ def adapt_column(column):
         "lookup-key": column.get("lookup_campos_lookup"),
         "lookup-result": column.get("lookup_campo_resultado"),
         "lookup-filter": column.get("lookup_filtro"),
+        "validation": adapt_validation(column.get("validacao"), get_validation_fn)
     }, **adapt_input_mask(column.get("mascara")))
+
+
+def adapt_validation(validation_name, get_validation_fn):
+    validation = get_validation_fn(validation_name)
+    if not hasattr(validation, "method_name"):
+        return None
+    return None
 
 
 def adapt_input_mask(original_mask):

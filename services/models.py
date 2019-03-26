@@ -1,25 +1,34 @@
 import time
 from django.db import models
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 
-EXPIRATION_TIME = 60 # in seconds
-VALIDATION_CACHE = {}
+# reset_cache is at the end of this file
+VALIDATION_CACHE = {"validations": {}}
 
 
 def get_validation(name):
-    cached_validation = VALIDATION_CACHE.get(name)
-    if not expired(cached_validation):
-        return cached_validation.get("validation")
-    return set_cache(name, FieldValidation.get(name=name))
+    cached_validation = cache_get(name)
+    if cached_validation is None:
+        return cache_set(name, get_validation_object(name))
+    return cached_validation.get("validation")
 
 
-def expired(validation):
-    return (not validation) or time.time() - validation.get("time", 0) > EXPIRATION_TIME
+def get_validation_object(name):
+    try:
+        return FieldValidation.objects.get(name=name)
+    except FieldValidation.DoesNotExist:
+        return None
 
 
-def set_cache(name, validation):
-    VALIDATION_CACHE[name] = {"time": time.time(), "validation": validation}
+def cache_set(name, validation):
+    VALIDATION_CACHE["validations"][name] = {"time": time.time(), "validation": validation}
     return validation
+
+
+def cache_get(name):
+    return VALIDATION_CACHE["validations"].get(name)
 
 
 class FieldValidation(models.Model):
@@ -71,3 +80,15 @@ class FieldValidation(models.Model):
         default=True,
         help_text="Indicates whether the frontend should display the returned message if an error occurs"
     )
+
+    def __str__(self):
+        return self.name
+
+
+# @receiver(post_save, sender=FieldValidation)
+def reset_cache(sender, **kwargs):
+    VALIDATION_CACHE["validations"] = {}
+
+
+post_save.connect(reset_cache, sender=FieldValidation)
+post_delete.connect(reset_cache, sender=FieldValidation)
