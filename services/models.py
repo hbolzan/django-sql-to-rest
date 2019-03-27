@@ -39,7 +39,7 @@ class FieldValidation(models.Model):
     - single_argument: name the field which value must be passed as part of the URL when calling the service
     - named_arguments: describe the relations between form fields and method parameters,
                        in pairs `argument_name=field_name`, one line for each pair
-    - expected_results: describe expected results and which fields receive them
+    - expected_results: describe expected results and which fields should receive them
                         in pairs `field_name<=additional_information_field`
                         assuming that every response have the format
                         {

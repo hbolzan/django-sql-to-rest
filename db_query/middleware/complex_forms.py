@@ -34,7 +34,8 @@ def apply_middleware(raw_data, exec_sql_fn):
     return list(map(functools.partial(adapt_complex_table, exec_sql_fn, get_validation), raw_data))
 
 
-def adapt_complex_table(exec_sql_fn, raw_complex_table, get_validation_fn):
+def adapt_complex_table(exec_sql_fn, get_validation_fn, raw_complex_table):
+    print(raw_complex_table)
     return {
         "id": raw_complex_table.get("id").replace("_", "-").lower(),
         "dataset-name": raw_complex_table.get("tabela_nome").split(";")[0],
@@ -77,7 +78,7 @@ def merge_lookup_column(column, key_columns, exec_sql_fn, get_validation_fn):
             key_column = next(filter(lambda c: c.get("campo") == key_field, key_columns))
             valor_default = key_column.get("valor_default")
             return dict(
-                adapt_column(column),
+                adapt_column(column, get_validation_fn),
                 **{
                     "name": key_field,
                     "data-type": DATA_TYPES.get(key_column.get("data_type"), "char"),
@@ -86,11 +87,11 @@ def merge_lookup_column(column, key_columns, exec_sql_fn, get_validation_fn):
                 }
             )
         except IndexError:
-            return adapt_column(column)
-    return adapt_column(column)
+            return adapt_column(column, get_validation_fn)
+    return adapt_column(column, get_validation_fn)
 
 
-def adapt_column(column):
+def adapt_column(column, get_validation_fn):
     default_value = str(column.get("valor_default", "")).strip()
     return dict({
         "order": column.get("ordem"),
@@ -117,7 +118,23 @@ def adapt_validation(validation_name, get_validation_fn):
     validation = get_validation_fn(validation_name)
     if not hasattr(validation, "method_name"):
         return None
-    return None
+    return {
+        "service": validation.service_name,
+        "method": validation.method_name,
+        "single-argument": validation.single_argument,
+        "named-arguments": split_kv_multilines(validation.named_arguments, "="),
+        "expected-results": split_kv_multilines(validation.expected_results, "<="),
+        "show-message-on-error": validation.message_on_error,
+    }
+
+
+def split_kv_multilines(lines_str, kv_separator):
+    try:
+        return {pair[0]: pair[1] for pair in
+                [l.strip().split(kv_separator) for l in lines_str.split("\n")]
+                if len(pair) > 1}
+    except AttributeError:
+        return lines_str
 
 
 def adapt_input_mask(original_mask):
