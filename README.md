@@ -290,3 +290,25 @@ You can see a working example at https://github.com/hbolzan/sql-to-rest-common-v
 ### Microservices Based Validations
 
 Validations are the way of connecting frontend complex forms to services.
+
+`FieldValidation` model allows adapting existing complex forms validation names
+
+* name: must match `validacao` field in app_tabelas_complexas_colunas
+* service_name and method_name: identify the service and method that must be called
+* single_argument: name the field which value must be passed as part of the URL when calling the service
+* named_arguments: describe the relations between form fields and method parameters,
+in pairs `argument_name=field_name`, one line for each pair
+* expected_results: describe expected results and which fields should receive them in pairs `field_name<=additional_information_field` assuming that every response have the format
+
+```
+{
+    "status": HTTP_STATUS,
+    "data": {
+        "messages": {"en": "Message in english", "pt-br": "Mensagem em português"},
+        "additional_information": {"key": "value", ...}
+    }
+}
+```
+
+*IMPORTANT*
+if no arguments are informed, the validated field value will be sent as a single argument
