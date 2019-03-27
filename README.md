@@ -289,7 +289,7 @@ You can see a working example at https://github.com/hbolzan/sql-to-rest-common-v
 
 ### Microservices Based Validations
 
-Validations are the way of connecting frontend complex forms to services.
+Validations are the way for connecting frontend complex forms to services.
 
 `FieldValidation` model allows adapting existing complex forms validation names
 
@@ -310,5 +310,6 @@ in pairs `argument_name=field_name`, one line for each pair
 }
 ```
 
-*IMPORTANT*
+**IMPORTANT**
+
 if no arguments are informed, the validated field value will be sent as a single argument
