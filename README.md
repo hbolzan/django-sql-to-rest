@@ -4,13 +4,16 @@ Quick and easy REST framework.
 
 The aim of this project is to provide an easy way to create a REST API. All you need is a SQL database. In it's simplest way, you just have to GET a table name and it will return the data as JSON.
 
-## Requirements* Python 3.6.+ I didn't try with earlier versions. Please check requirements for Django 2.1.7.
+## Requirements
+* Python 3.6.+ I didn't try with earlier versions. Please check requirements for Django 2.1.7.
 * Pip Python package manager.
 * Virtualenv (recommended).
+* Virtualenvwrapper (recommended).
 
 ## Getting started
 
 1. Clone this repository: `git clone https://github.com/hbolzan/django-sql-to-rest.git`.
+1. Start a new Python 3 virtualenv (recommended): `mkvirtualenv --python=``which python3`` djang-sql-to-rest`
 2. Switch to the project directory: `cd django-sql-to-rest`.
 3. Install project requirements: `pip install -r requirements.txt`
 4. Create a new database in your database server for the default django connection.
@@ -56,7 +59,7 @@ To create a persistent query, point your browser to `http://127.0.0.1:8000/admin
 * *Query PK*: DEPRECATED
 * *Description*: That's what the name says. Only a description.
 * *SQL Query*: Query used by `GET` method. If you need to pass any arguments into your query, use the python string format notation with named parameters. Example: `select * from people where age >= {min_age}`. When calling a persistent query, you can still apply `columns`, `where` and `order` parameters the same way you can do with adhoc queries.
-* *SQl Insert*: Query used by `POST` method to insert data. You can declare parameters the same way you do with *SQL Query*. The query formatter will quote string values automatically when replacing parameters, so you must not quote the string parameters in yor query. See the example below: 
+* *SQL Insert*: Query used by `POST` method to insert data. You can declare parameters the same way you do with *SQL Query*. The query formatter will quote string values automatically when replacing parameters, so you must not quote the string parameters in yor query. See the example below: 
 ```
 insert into people (name, age) values ({name}, {age})
 ```
