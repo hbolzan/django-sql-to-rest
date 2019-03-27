@@ -139,7 +139,7 @@ set first_name = 'Jack', last_name = last_name, age = age
 where id = 2
 ```
 
-### DELETE
+#### DELETE
 The `DELETE` method executes the delete query. Just like in `PUT`, you must pass the `pk`. For now, only one record at a time can be deleted. There are no additional parameters that can be passed in the url query.
 
 The request
@@ -293,12 +293,12 @@ Validations are the way for connecting frontend complex forms to services.
 
 `FieldValidation` model allows adapting existing complex forms validation names
 
-* name: must match `validacao` field in app_tabelas_complexas_colunas
-* service_name and method_name: identify the service and method that must be called
-* single_argument: name the field which value must be passed as part of the URL when calling the service
-* named_arguments: describe the relations between form fields and method parameters,
+* *name*: must match `validacao` field in app_tabelas_complexas_colunas
+* *service_name* and *method_name*: identify the service and method that must be called
+* *single_argument*: name the field which value must be passed as part of the URL when calling the service
+* *named_arguments*: describe the relations between form fields and method parameters,
 in pairs `argument_name=field_name`, one line for each pair
-* expected_results: describe expected results and which fields should receive them in pairs `field_name<=additional_information_field` assuming that every response have the format
+* *expected_results*: describe expected results and which fields should receive them in pairs `field_name<=additional_information_field` assuming that every response have the format
 
 ```
 {
