@@ -125,6 +125,7 @@ def adapt_validation(validation_name, get_validation_fn):
         "named-arguments": split_kv_multilines(validation.named_arguments, "="),
         "expected-results": split_kv_multilines(validation.expected_results, "<="),
         "show-message-on-error": validation.message_on_error,
+        "before-validate": split_lines(validation.before_validate),
     }
 
 
@@ -135,6 +136,13 @@ def split_kv_multilines(lines_str, kv_separator):
                 if len(pair) > 1}
     except AttributeError:
         return lines_str
+
+
+def split_lines(lines_str):
+    try:
+        return [l.strip() for l in lines_str.split("\n")]
+    except AttributeError:
+        return None
 
 
 def adapt_input_mask(original_mask):

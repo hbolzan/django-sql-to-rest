@@ -80,6 +80,12 @@ class FieldValidation(models.Model):
         default=True,
         help_text="Indicates whether the frontend should display the returned message if an error occurs"
     )
+    before_validate = models.TextField(
+        "Before validate",
+        blank=True,
+        null=True,
+        help_text="Actions to apply to arguments before validation"
+    )
 
     def __str__(self):
         return self.name

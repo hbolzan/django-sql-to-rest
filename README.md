@@ -5,7 +5,7 @@ Quick and easy REST framework.
 The aim of this project is to provide an easy way to create a REST API. All you need is a SQL database. In it's simplest way, you just have to GET a table name and it will return the data as JSON.
 
 ## Requirements
-* Python 3.6.+ I didn't try with earlier versions. Please check requirements for Django 2.1.7.
+* Python 3.6.+. I didn't try with earlier versions. Please check requirements for Django 2.1.7.
 * Pip Python package manager.
 * Virtualenv (recommended).
 * Virtualenvwrapper (recommended).
@@ -21,7 +21,7 @@ The aim of this project is to provide an easy way to create a REST API. All you 
 6. Run migrate to start system database: `python manage.py migrate`
 7. Set django superuser: `python manage.py createsuperuser`
 8. Run the development server: `python manage.py runserver`
-9. Point a browser to `http://127.0.0.1:8000/`
+9. Point your browser to `http://127.0.0.1:8000/`
 
 
 ## How to use
@@ -312,6 +312,8 @@ in pairs `argument_name=field_name`, one line for each pair
     }
 }
 ```
+* *message_on_error*: indicates whether the message should be displayed at the frontend when an error occurs
+* *before_validate*: list of actions that should be applied to arguments before validation. Currently, only `clear_separators` is available.
 
 **IMPORTANT**
 
