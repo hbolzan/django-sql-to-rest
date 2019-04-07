@@ -13,14 +13,17 @@ COPY . /app/sql-to-rest
 # setup
 RUN apk update
 RUN apk upgrade
-RUN apk add --update python3 python3-dev
+RUN apk add git
+RUN apk add postgresql-dev gcc python3 python3-dev musl-dev
 RUN apk add libffi-dev zlib-dev
-RUN apk add netcat
 ENV LIBRARY_PATH=/lib:/usr/lib
 
 WORKDIR /app/sql-to-rest
-RUN pip3 install -r requirements.txt
-RUN pip3 install gunicorn
+RUN pip3 install -U pip
+RUN pip install -r requirements.txt
+RUN pip install gunicorn
 
 COPY ./docker-entrypoint.sh /
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# entrypoint config moved to docker compose file
+# to allow debugging when needed
+# ENTRYPOINT ["/docker-entrypoint.sh"]
