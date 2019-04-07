@@ -82,19 +82,19 @@ WSGI_APPLICATION = 'django_sql_to_rest.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'sql_to_rest',
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
+        'NAME': os.getenv('API_DB_NAME'),
+        'USER': os.getenv('API_DB_USER'),
+        'PASSWORD': os.getenv('API_DB_PASS'),
+        'HOST': os.getenv('API_DB_HOST'),
+        'PORT': os.getenv('API_DB_PORT'),
     },
     'query_db': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'db_where_you_want_to_apply_your_queries',
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
+        'NAME': os.getenv('DATA_DB_NAME'),
+        'USER': os.getenv('DATA_DB_USER'),
+        'PASSWORD': os.getenv('DATA_DB_PASS'),
+        'HOST': os.getenv('DATA_DB_HOST'),
+        'PORT': os.getenv('DATA_DB_PORT'),
     }
 }
 
@@ -143,7 +143,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-try:
-    from .local_settings import *  # noqa
-except ImportError:
-    pass
+if os.getenv("DOCKERIZED") is None:
+    try:
+        from .local_settings import *  # noqa
+    except ImportError:
+        pass
