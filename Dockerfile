@@ -16,6 +16,7 @@ RUN apk upgrade
 RUN apk add git
 RUN apk add postgresql-dev gcc python3 python3-dev musl-dev
 RUN apk add libffi-dev zlib-dev
+RUN apk add postgresql-client
 ENV LIBRARY_PATH=/lib:/usr/lib
 
 WORKDIR /app/sql-to-rest

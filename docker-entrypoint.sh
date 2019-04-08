@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # until nc -z ${POSTGRES_HOST} ${POSTGRES_PORT}; do
 #     echo "$(date) - waiting for postgres..."

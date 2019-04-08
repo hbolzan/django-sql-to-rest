@@ -35,7 +35,7 @@ services:
       - "8000:8000"
     # debugging entrypoint commented
     # entrypoint: ["sh", "-c", "sleep 2073600"]
-    entrypoint: ["sh", "/docker-entrypoint.sh"]
+    entrypoint: ["/docker-entrypoint.sh"]
     depends_on:
       - db
       - rabbitmq
