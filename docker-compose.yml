@@ -31,6 +31,7 @@ services:
       - DATA_DB_HOST=db
       - DATA_DB_PORT=${DATA_DB_PORT}
     build: .
+    # image: "hbolzan/django-sql-to-rest:test-01"
     ports:
       - "8000:8000"
     # debugging entrypoint commented
