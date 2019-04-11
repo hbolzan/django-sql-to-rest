@@ -1,2 +1,4 @@
 local_settings.py
 *.pyc
+deploy/pg_dumps/
+
