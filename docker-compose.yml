@@ -11,6 +11,7 @@ services:
       - "5432"
     volumes:
       - server_db:/var/lib/postgresql/data
+
   rabbitmq:
     image: "rabbitmq:3"
     hostname: "nameko-rabbitmq"
@@ -30,8 +31,8 @@ services:
       - DATA_DB_USER=${DATA_DB_USER}
       - DATA_DB_HOST=db
       - DATA_DB_PORT=${DATA_DB_PORT}
-    build: .
-    # image: "hbolzan/django-sql-to-rest:test-01"
+    # build: .
+    image: "hbolzan/django-sql-to-rest:test-02"
     ports:
       - "8000:8000"
     # debugging entrypoint commented

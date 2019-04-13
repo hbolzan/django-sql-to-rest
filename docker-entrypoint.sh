@@ -1,9 +1,9 @@
 #!/bin/sh
 
-# until nc -z ${POSTGRES_HOST} ${POSTGRES_PORT}; do
-#     echo "$(date) - waiting for postgres..."
-#     sleep 1
-# done
+until nc -z ${POSTGRES_HOST} ${POSTGRES_PORT}; do
+    echo "$(date) - waiting for postgres..."
+    sleep 1
+done
 
 # until nc -z ${RABBIT_HOST} ${RABBIT_PORT}; do
 #     echo "$(date) - waiting for rabbitmq..."

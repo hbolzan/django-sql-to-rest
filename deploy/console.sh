@@ -7,9 +7,9 @@
 
 # 1. send this script to server (you can use send-to-server.sh)
 # 2. run new_sudo_user <username>
-# 3. run install_docker
-# 4. log off the server and log in again with the new sudo user you just created
-# 5. run install_composer to install docker composer
+# 3. log off the server and log in again with the new sudo user you just created
+# 4. run install_docker
+# 5. run install_composer to install docker compose
 
 
 export SELF=$0
@@ -35,7 +35,7 @@ function new_sudo_user() {
     echo "You will be logged in as $1"
     echo "Now you should run the console script and install docker"
     echo "$ ./console.sh"
-    echo "$ install_dcoker"
+    echo "$ install_docker"
     echo "###############"
     echo ""
     su - $1
