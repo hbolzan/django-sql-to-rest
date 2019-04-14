@@ -1,6 +1,6 @@
 version: "3"
 
-# Environment variables are defined at ./.env
+# Environment variables are defined at .env
 
 services:
   db:
