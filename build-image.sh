@@ -1,4 +1,9 @@
 #!/bin/bash
 
 VERSION=$1
-docker build --build-arg VERSION=$VERSION -t "hbolzan/django-sql-to-rest:${VERSION}" .
+docker build --build-arg VERSION=$VERSION --build-arg USER=$DOCKER_USER_ID \
+       -t "${DOCKER_USER_ID}/django-sql-to-rest:latest" \
+       -t "${DOCKER_USER_ID}/django-sql-to-rest:${VERSION}" .
+
+docker push "${DOCKER_USER_ID}/django-sql-to-rest:${VERSION}"
+docker push "${DOCKER_USER_ID}/django-sql-to-rest:latest"

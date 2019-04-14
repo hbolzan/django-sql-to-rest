@@ -2,7 +2,8 @@
 # parent image contains all dependencies necessary to run a Django application
 
 ARG VERSION
-FROM hbolzan/base-for-django:${VERSION}
+ARG USER
+FROM ${USER}/base-for-django:latest
 
 # project root directory
 RUN mkdir -p /app/sql-to-rest

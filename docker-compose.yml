@@ -32,7 +32,7 @@ services:
       - DATA_DB_HOST=db
       - DATA_DB_PORT=${DATA_DB_PORT}
     # build: .
-    image: "hbolzan/django-sql-to-rest:test-02"
+    image: "{DOCKER_USER_ID}/django-sql-to-rest"
     ports:
       - "8000:8000"
     # debugging entrypoint commented
