@@ -1,4 +1,7 @@
 version: "3"
+
+# Environment variables are defined at ./.env
+
 services:
   db:
     environment:
@@ -14,7 +17,7 @@ services:
 
   rabbitmq:
     image: "rabbitmq:3"
-    hostname: "nameko-rabbitmq"
+    hostname: "rabbitmq"
     ports:
       - "5672:5672"
 
@@ -22,6 +25,10 @@ services:
     environment:
       - DOCKERIZED=${DOCKERIZED}
       - DJANGO_APP_PORT=${DJANGO_APP_PORT}
+      - RABBIT_HOST=rabbitmq
+      - RABBIT_PORT=5672
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
       - API_DB_PASS=${API_DB_PASS}
       - API_DB_NAME=${API_DB_NAME}
       - API_DB_USER=${API_DB_USER}
@@ -32,9 +39,11 @@ services:
       - DATA_DB_HOST=db
       - DATA_DB_PORT=${DATA_DB_PORT}
     # build: .
-    image: "{DOCKER_USER_ID}/django-sql-to-rest"
+    image: "hbolzan/django-sql-to-rest:latest"
+    volumes:
+      - static_volume:/app/sql-to-rest/static
     ports:
-      - "8000:8000"
+      - "${DJANGO_APP_PORT}"
     # debugging entrypoint commented
     # entrypoint: ["sh", "-c", "sleep 2073600"]
     entrypoint: ["/docker-entrypoint.sh"]
@@ -42,5 +51,15 @@ services:
       - db
       - rabbitmq
 
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/app/sql-to-rest/static
+    ports:
+      - 1337:80
+    depends_on:
+      - api
+
 volumes:
   server_db:
+  static_volume:

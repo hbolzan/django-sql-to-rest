@@ -19,5 +19,6 @@ if [ $EXISTS -gt 0 ]
 then
     echo "$1 exists"
 else
+    psql -U postgres -h db -c "create database $1;"
     restore_db $1 $2
 fi

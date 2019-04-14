@@ -12,4 +12,5 @@ COPY . /app/sql-to-rest
 COPY ./deploy/pg_dumps/. /pg_dumps/
 WORKDIR /app/sql-to-rest
 RUN pip install -r requirements.txt
+COPY ./check-db.sh /
 COPY ./docker-entrypoint.sh /
