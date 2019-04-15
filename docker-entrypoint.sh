@@ -5,8 +5,8 @@ until nc -z ${POSTGRES_HOST} ${POSTGRES_PORT}; do
     sleep 1
 done
 
-/check-db.sh sql_to_rest /pg_dumps/sql_to_rest.dump
-/check-db.sh minipcp /pg_dumps/minipcp_zero.dump
+/check-db.sh sql_to_rest /app/sql-to-rest/deploy/pg_dumps/sql_to_rest.dump
+/check-db.sh minipcp /app/sql-to-rest/deploy/pg_dumps/minipcp_zero.dump
 
 until nc -z ${RABBIT_HOST} ${RABBIT_PORT}; do
     echo "$(date) - waiting for rabbitmq..."
