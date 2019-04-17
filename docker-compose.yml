@@ -16,10 +16,20 @@ services:
       - server_db:/var/lib/postgresql/data
 
   rabbitmq:
+    environment:
+      - RABBITMQ_DEFAULT_USER="rabbitmq"
+      - RABBITMQ_DEFAULT_PASS="rabbitmq"
     image: "rabbitmq:3"
     hostname: "rabbitmq"
+
     ports:
       - "5672:5672"
+
+  common-validations:
+    environment:
+      - RABBIT_HOST=rabbitmq
+      - RABBIT_PORT=5672
+    image: "hbolzan/common-validations:latest"
 
   api:
     environment:
@@ -49,6 +59,7 @@ services:
     # entrypoint: ["sh", "-c", "sleep 2073600"]
     entrypoint: ["/docker-entrypoint.sh"]
     depends_on:
+      - common-validations
       - db
       - rabbitmq
 
