@@ -15,28 +15,37 @@ services:
     volumes:
       - server_db:/var/lib/postgresql/data
 
-  rabbitmq:
+  nameko-rabbitmq:
     environment:
-      - RABBITMQ_DEFAULT_USER="rabbitmq"
-      - RABBITMQ_DEFAULT_PASS="rabbitmq"
-    image: "rabbitmq:3"
-    hostname: "rabbitmq"
-
+      - RABBITMQ_DEFAULT_VHOST=/
+      - RABBITMQ_DEFAULT_USER=rabbitmq
+      - RABBITMQ_DEFAULT_PASS=rabbitmq
+    image: "rabbitmq:3-management"
+    hostname: "nameko-rabbitmq"
     ports:
-      - "5672:5672"
+      - "15672:15672"
+      - "5672"
 
+  # services
   common-validations:
     environment:
-      - RABBIT_HOST=rabbitmq
+      - RABBIT_HOST=nameko-rabbitmq
       - RABBIT_PORT=5672
+      - RABBIT_USER=rabbitmq
+      - RABBIT_PASSWORD=rabbitmq
     image: "hbolzan/common-validations:latest"
+    depends_on:
+      - nameko-rabbitmq
 
+  # main application
   api:
     environment:
       - DOCKERIZED=${DOCKERIZED}
       - DJANGO_APP_PORT=${DJANGO_APP_PORT}
-      - RABBIT_HOST=rabbitmq
+      - RABBIT_HOST=nameko-rabbitmq
       - RABBIT_PORT=5672
+      - RABBIT_USER=rabbitmq
+      - RABBIT_PASSWORD=rabbitmq
       - POSTGRES_HOST=db
       - POSTGRES_PORT=${POSTGRES_PORT}
       - PGPASSWORD=${POSTGRES_PASSWORD}
@@ -55,14 +64,14 @@ services:
       - static_volume:/app/sql-to-rest/static
     ports:
       - "${DJANGO_APP_PORT}"
-    # debugging entrypoint commented
+    # debugging entrypoint - uncomment to debug
     # entrypoint: ["sh", "-c", "sleep 2073600"]
-    entrypoint: ["/docker-entrypoint.sh"]
     depends_on:
       - common-validations
       - db
-      - rabbitmq
+      - nameko-rabbitmq
 
+  # nginx
   nginx:
     build: ./nginx
     volumes:
