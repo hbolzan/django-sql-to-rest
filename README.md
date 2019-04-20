@@ -287,7 +287,7 @@ class MyService
         )
 ```
 
-You can see a working example at https://github.com/hbolzan/sql-to-rest-common-validations
+You can see a real world example at https://github.com/hbolzan/sql-to-rest-common-validations
 
 
 ### Microservices Based Validations

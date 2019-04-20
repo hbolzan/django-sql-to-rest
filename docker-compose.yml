@@ -71,16 +71,26 @@ services:
       - db
       - nameko-rabbitmq
 
+  # remove frontend_volume after rebuilding frontend image
+  # frontend
+  metaforms:
+    image: "hbolzan/metaforms-static:latest"
+    volumes:
+      - frontend_volume:/html
+
   # nginx
   nginx:
     build: ./nginx
     volumes:
       - static_volume:/app/sql-to-rest/static
+      - frontend_volume:/app/metaforms/html
     ports:
       - 1337:80
     depends_on:
       - api
+      - metaforms
 
 volumes:
   server_db:
   static_volume:
+  frontend_volume:
