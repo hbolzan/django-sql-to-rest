@@ -26,7 +26,9 @@ services:
       - "15672:15672"
       - "5672"
 
+  ########################################
   # services
+  ########################################
   common-validations:
     environment:
       - RABBIT_HOST=nameko-rabbitmq
@@ -36,6 +38,8 @@ services:
     image: "hbolzan/common-validations:latest"
     depends_on:
       - nameko-rabbitmq
+
+  ########################################
 
   # main application
   api:
@@ -58,7 +62,6 @@ services:
       - DATA_DB_USER=${DATA_DB_USER}
       - DATA_DB_HOST=db
       - DATA_DB_PORT=${DATA_DB_PORT}
-    # build: .
     image: "hbolzan/django-sql-to-rest:latest"
     volumes:
       - static_volume:/app/sql-to-rest/static
@@ -73,24 +76,24 @@ services:
 
   # remove frontend_volume after rebuilding frontend image
   # frontend
-  metaforms:
+  front:
     image: "hbolzan/metaforms-static:latest"
-    volumes:
-      - frontend_volume:/html
+    entrypoint: "busybox httpd -f -p 127.0.0.1:8080 -h /var/www/html"
+    ports:
+      - 8080
+    # entrypoint: ["busybox", "httpd", "-p 127.0.0.1:8080", "-h /var/www/html"]
 
   # nginx
   nginx:
     build: ./nginx
     volumes:
       - static_volume:/app/sql-to-rest/static
-      - frontend_volume:/app/metaforms/html
     ports:
       - 1337:80
     depends_on:
       - api
-      - metaforms
+      - front
 
 volumes:
   server_db:
   static_volume:
-  frontend_volume:
