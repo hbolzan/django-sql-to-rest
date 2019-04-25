@@ -74,14 +74,11 @@ services:
       - db
       - nameko-rabbitmq
 
-  # remove frontend_volume after rebuilding frontend image
   # frontend
   front:
     image: "hbolzan/metaforms-static:latest"
-    entrypoint: "busybox httpd -f -p 127.0.0.1:8080 -h /var/www/html"
     ports:
-      - 8080
-    # entrypoint: ["busybox", "httpd", "-p 127.0.0.1:8080", "-h /var/www/html"]
+      - 80
 
   # nginx
   nginx:
