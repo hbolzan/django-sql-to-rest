@@ -35,7 +35,6 @@ def apply_middleware(raw_data, exec_sql_fn):
 
 
 def adapt_complex_table(exec_sql_fn, get_validation_fn, raw_complex_table):
-    print(raw_complex_table)
     return {
         "id": raw_complex_table.get("id").replace("_", "-").lower(),
         "dataset-name": raw_complex_table.get("tabela_nome").split(";")[0],
