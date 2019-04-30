@@ -35,11 +35,16 @@ def apply_middleware(raw_data, exec_sql_fn):
 
 
 def adapt_complex_table(exec_sql_fn, get_validation_fn, raw_complex_table):
+    fields_defs = adapt_columns(raw_complex_table.get("columns"), exec_sql_fn, get_validation_fn)
     return {
         "id": raw_complex_table.get("id").replace("_", "-").lower(),
         "dataset-name": raw_complex_table.get("tabela_nome").split(";")[0],
         "title": raw_complex_table.get("descricao"),
-        "fields-defs": adapt_columns(raw_complex_table.get("columns"), exec_sql_fn, get_validation_fn),
+        "fields-defs": fields_defs,
+        "search-columns": sorted(
+            filter(lambda c: c["search-result?"], fields_defs),
+            key=lambda c: c.get("search-result-order") or 0
+        ),
     }
 
 
@@ -109,7 +114,9 @@ def adapt_column(column, get_validation_fn):
         "lookup-key": column.get("lookup_campos_lookup"),
         "lookup-result": column.get("lookup_campo_resultado"),
         "lookup-filter": column.get("lookup_filtro"),
-        "validation": adapt_validation(column.get("validacao"), get_validation_fn)
+        "validation": adapt_validation(column.get("validacao"), get_validation_fn),
+        "search-result?": column.get("visivel_pesquisa") == "S",
+        "search-result-order": column.get("ordem_pesquisa")
     }, **adapt_input_mask(column.get("mascara")))
 
 
