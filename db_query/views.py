@@ -119,7 +119,7 @@ def do_method(self, request, query_id, method, get_sql_fn, pk_value=None):
     query = get_query_obj(query_id)
     source, pk_field = query.insert_pk.split("/")
     sql = get_sql_fn(custom_sql_by_method(query, method), source, pk_field, request_data, pk_value)
-    sql_retrieve = get_sql_retrieve(source, pk_field, request_data)
+    sql_retrieve = get_sql_retrieve(source, pk_field, pk_value)
     data = exec_sql_with_result(sql+sql_retrieve)
     return HttpResponse(
         persistent_query_data_as_json(query.name, data),
@@ -142,8 +142,7 @@ def custom_sql_by_method(query, method):
     }[method]
 
 
-def get_sql_retrieve(source, pk_field, request_data):
-    pk_value = request_data.get("pk")
+def get_sql_retrieve(source, pk_field, pk_value):
     if pk_value:
         return "; select * from {} where {} = {};".format(
             source, pk_field, value_to_sql(pk_value)

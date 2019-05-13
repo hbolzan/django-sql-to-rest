@@ -36,10 +36,19 @@ def apply_middleware(raw_data, exec_sql_fn):
 
 def adapt_complex_table(exec_sql_fn, get_validation_fn, raw_complex_table):
     fields_defs = adapt_columns(raw_complex_table.get("columns"), exec_sql_fn, get_validation_fn)
+    editable = raw_complex_table.get("read_only") != "S"
     return {
         "id": raw_complex_table.get("id").replace("_", "-").lower(),
         "dataset-name": raw_complex_table.get("tabela_nome").split(";")[0],
         "title": raw_complex_table.get("descricao"),
+        "pk-fields": raw_complex_table.get("coluna_pk").split(","),
+        "auto-pk": raw_complex_table.get("pk_automatica") == "S",
+        "order-by-fields": raw_complex_table.get("coluna_order_by").split(","),
+        "permissions": {
+            "insert": editable and raw_complex_table.get("pode_inserir") == "S",
+            "edit": editable and raw_complex_table.get("pode_editar") == "S",
+            "delete": editable and raw_complex_table.get("pode_excluir") == "S",
+        },
         "fields-defs": fields_defs,
         "search-columns": sorted(
             filter(lambda c: c["search-result?"], fields_defs),
