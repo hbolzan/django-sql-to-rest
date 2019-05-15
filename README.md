@@ -58,7 +58,13 @@ To create a persistent query, point your browser to `http://127.0.0.1:8000/admin
 * *Insert PK*: this is the PK field that will be used to retrieve the inserted row after a POST. It must be qualified with schema and table name. If you will be inserting data into `people` table at `public` schema and the field `id` is the primary key you should fill Insert PK with `public.people/id`. If the table is in the default schema you really don't need to specify the schema.
 * *Query PK*: DEPRECATED
 * *Description*: That's what the name says. Only a description.
-* *SQL Query*: Query used by `GET` method. If you need to pass any arguments into your query, use the python string format notation with named parameters. Example: `select * from people where age >= {min_age}`. When calling a persistent query, you can still apply `columns`, `where` and `order` parameters the same way you can do with adhoc queries.
+* *SQL Query*: Query used by `GET` method. If you need to pass any arguments into your query, 
+use the python string format notation with named parameters. 
+Example: `select * from people where age >= {min_age}`. 
+When calling a persistent query, you can still apply `columns`, `where` and `order` parameters 
+the same way you can do with adhoc queries. If you use the special parameter `{_search_}`, 
+the replacing values will be wrapped with `%`, so you can write a query with `like` or `ilike` operators 
+as in the example: `select * from people where name ilike {_search_}`
 * *SQL Insert*: Query used by `POST` method to insert data. You can declare parameters the same way you do with *SQL Query*. The query formatter will quote string values automatically when replacing parameters, so you must not quote the string parameters in yor query. See the example below: 
 ```
 insert into people (name, age) values ({name}, {age})

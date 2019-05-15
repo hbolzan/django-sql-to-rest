@@ -267,6 +267,7 @@ def replace_query_params(sql, params, default_rule):
     * Query parameters must use string format syntax
       Example:
           select * from some_table where id = {id} and age > {min_age}
+    * Special key _search_ will be replaced by %<value>%
     """
     return sql.format(**build_replace_dict(get_format_keys(sql), params, default_rule))
 
@@ -278,9 +279,15 @@ def build_replace_dict(expected_keys, params, default_rule):
         if param_value is None:
             value = xk if default_rule == REPLACE_WITH_KEY else "null"
         else:
-            value = value_to_sql(param_value)
+            value = value_to_sql(modify_special_search_value(xk, param_value))
         replace_dict[xk] = value
     return replace_dict
+
+
+def modify_special_search_value(key, param_value):
+    if key == "_search_":
+        return "%{}%".format(param_value)
+    return param_value
 
 
 def get_format_keys(s):
