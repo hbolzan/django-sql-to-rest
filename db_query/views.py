@@ -119,12 +119,33 @@ def do_method(self, request, query_id, method, get_sql_fn, pk_value=None):
     query = get_query_obj(query_id)
     source, pk_field = query.insert_pk.split("/")
     sql = get_sql_fn(custom_sql_by_method(query, method), source, pk_field, request_data, pk_value)
-    sql_retrieve = get_sql_retrieve(source, pk_field, pk_value)
+    sql_retrieve = get_sql_retrieve(
+        source,
+        pk_field,
+        get_retrieve_pk_value(request_data, pk_field, query.query_pk, pk_value)
+    )
     data = exec_sql_with_result(sql+sql_retrieve)
     return HttpResponse(
         persistent_query_data_as_json(query.name, data),
         content_type="application/json"
     )
+
+
+def get_retrieve_pk_value(request_data, pk_field, query_pk, pk_value):
+    if not pk_value:
+        pk_value = request_data.get('data', {}).get(pk_field)
+    if not query_pk or not pk_value:
+        return pk_value
+    return replace_query_pk(query_pk, pk_value)
+
+
+def replace_query_pk(query_pk, pk_value):
+    if pk_value:
+        try:
+            return query_pk.replace("{pk_value}", pk_value)
+        except AttributeError:
+            return pk_value
+    return pk_value
 
 
 def get_query_obj(query_id):
@@ -229,7 +250,7 @@ def value_to_sql(value):
 
 def quoted_if_non_numeric(s):
     if type(s) == str:
-        return s if s.isnumeric() else "'{}'".format(s)
+        return s if s.isnumeric() else "'{}'".format(s.strip("'"))
     return s
 
 

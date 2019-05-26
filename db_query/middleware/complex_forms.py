@@ -39,7 +39,7 @@ def adapt_complex_table(exec_sql_fn, get_validation_fn, raw_complex_table):
     editable = raw_complex_table.get("read_only") != "S"
     return {
         "id": raw_complex_table.get("id").replace("_", "-").lower(),
-        "dataset-name": raw_complex_table.get("tabela_nome").split(";")[0],
+        "dataset-name": raw_complex_table.get("tabela_nome").split(";")[0].replace('.', '-'),
         "title": raw_complex_table.get("descricao"),
         "pk-fields": raw_complex_table.get("coluna_pk").split(","),
         "auto-pk": raw_complex_table.get("pk_automatica") == "S",
