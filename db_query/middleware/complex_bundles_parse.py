@@ -28,7 +28,7 @@ def adapt_bundled_table(table, exec_sql_fn):
         "detail": raw_params.get("DETAIL") == "S",
         "related-fields": [c.strip() for c in raw_params.get("COLUNAS_DETAIL", "").split(",")],
         "master-fields": [c.strip() for c in raw_params.get("COLUNAS_MASTER", "").split(",")],
-        "fields-defs": get_child_definition(raw_params.get("COMPLEXA_ID"))
+        "definition": get_child_definition(raw_params.get("COMPLEXA_ID"))
     }
 
 
