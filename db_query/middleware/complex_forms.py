@@ -30,7 +30,7 @@ ALIGNMENTS = {
 }
 
 
-def apply_middleware(raw_data, exec_sql_fn):
+def apply_middleware(raw_data, exec_sql_fn, *args, **kwargs):
     return list(map(functools.partial(adapt_complex_table, exec_sql_fn, get_validation), raw_data))
 
 

@@ -56,7 +56,7 @@ To create a persistent query, point your browser to `http://127.0.0.1:8000/admin
 * *Query name*: a descriptive name to your persistent query.
 * *Query ID*: slugified version of query name. It will be filed automatically so you don't have to care about this.
 * *Insert PK*: this is the PK field that will be used to retrieve the inserted row after a POST. It must be qualified with schema and table name. If you will be inserting data into `people` table at `public` schema and the field `id` is the primary key you should fill Insert PK with `public.people/id`. If the table is in the default schema you really don't need to specify the schema.
-* *Query PK*: DEPRECATED
+* *Query PK*: This field can be used when the primary key is a string but is filed with numeric strings. In this cases you can pass `'{pk_value}'` into Query PK so the primary key value will always be wrapped in single quotes on SQL `where` statements.
 * *Description*: That's what the name says. Only a description.
 * *SQL Query*: Query used by `GET` method. If you need to pass any arguments into your query, 
 use the python string format notation with named parameters. 
