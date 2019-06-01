@@ -28,7 +28,7 @@ def adapt_bundled_table(table, exec_sql_fn):
         "detail": raw_params.get("DETAIL") == "S",
         "related-fields": [c.strip() for c in raw_params.get("COLUNAS_DETAIL", "").split(",")],
         "master-fields": [c.strip() for c in raw_params.get("COLUNAS_MASTER", "").split(",")],
-        "definition": get_child_definition(raw_params.get("COMPLEXA_ID"))
+        "definition": fix_none_results(get_child_definition(raw_params.get("COMPLEXA_ID")))
     }
 
 
@@ -40,6 +40,7 @@ def get_complex_definition(raw_params):
     master_fields = [c.strip() for c in raw_params.get("COLUNAS_MASTER", "").split(",")]
 
 
+# TODO: do this in a better way
 HOST = "http://localhost:8000"
 PATH = "/api/query/persistent/complex-tables/?id={id}&middleware=complex_forms&depth=1"
 BASE_URL = HOST + PATH
@@ -49,6 +50,18 @@ def get_child_definition(complex_id):
     if r.status_code == 200:
         return r.json().get("data")
     return {}
+
+
+def fix_none_results(data):
+    if isinstance(data, dict):
+        return {k: fix_none_results(v) for k, v in data.items()}
+
+    if isinstance(data, list):
+        return [fix_none_results(v) for v in data]
+
+    if data == "None":
+        return None
+    return data
 
 
 def params_to_dict(params):
