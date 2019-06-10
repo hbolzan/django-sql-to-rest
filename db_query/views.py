@@ -90,6 +90,38 @@ class DbQueryPersistent(View):
         )
 
 
+class DbQueryPersistentBatch(View):
+
+    http_method_names = ["options", "post",]
+
+    def post(self, request, query_id):
+        request_data = json.loads(request.body)
+        # print(request_data)
+        query = get_query_obj(query_id)
+        source, pk_field = query.insert_pk.split("/")
+        # return HttpResponse(
+        #     persistent_query_data_as_json(query.name, data),
+        #     content_type="application/json"
+        # )
+        return HttpResponse(json.dumps({"data": "TESTE"}), content_type="application/json")
+
+    def do_method(self, request, query_id, method, get_sql_fn, pk_value=None):
+        request_data = json.loads(request.body)
+        query = get_query_obj(query_id)
+        source, pk_field = query.insert_pk.split("/")
+        sql = get_sql_fn(custom_sql_by_method(query, method), source, pk_field, request_data, pk_value)
+        sql_retrieve = get_sql_retrieve(
+            source,
+            pk_field,
+            get_retrieve_pk_value(request_data, pk_field, query.query_pk, pk_value)
+        )
+        data = exec_sql_with_result(sql+sql_retrieve)
+        return HttpResponse(
+            persistent_query_data_as_json(query.name, data),
+            content_type="application/json"
+        )
+
+
 def apply_middleware(data, middleware):
     if middleware is None:
         return data
