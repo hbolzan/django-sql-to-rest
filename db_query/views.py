@@ -96,30 +96,39 @@ class DbQueryPersistentBatch(View):
 
     def post(self, request, query_id):
         request_data = json.loads(request.body)
-        # print(request_data)
+        print(10 * "*")
+        print(request_data)
+        print(10 * "*")
         query = get_query_obj(query_id)
         source, pk_field = query.insert_pk.split("/")
+        pk_fields = request_data.get("data", {}).get("meta", {}).get("pk-fields")
+        inserts = [self.get_insert_sql(query, source, row)
+                   for row in request_data.get("data", {}).get("append", [])]
+        updates = [self.get_update_sql(query, source, pk_fields, row)
+                   for row in request_data.get("data", {}).get("update", [])]
+        deletes = [self.get_delete_sql(query, source, pk_fields, row)
+                   for row in request_data.get("data", {}).get("delete", [])]
+        print(10 * "*")
+        print("\n".join(inserts))
+        print("\n".join(updates))
+        print("\n".join(deletes))
+        print(10 * "*")
         # return HttpResponse(
         #     persistent_query_data_as_json(query.name, data),
         #     content_type="application/json"
         # )
         return HttpResponse(json.dumps({"data": "TESTE"}), content_type="application/json")
 
-    def do_method(self, request, query_id, method, get_sql_fn, pk_value=None):
-        request_data = json.loads(request.body)
-        query = get_query_obj(query_id)
-        source, pk_field = query.insert_pk.split("/")
-        sql = get_sql_fn(custom_sql_by_method(query, method), source, pk_field, request_data, pk_value)
-        sql_retrieve = get_sql_retrieve(
-            source,
-            pk_field,
-            get_retrieve_pk_value(request_data, pk_field, query.query_pk, pk_value)
-        )
-        data = exec_sql_with_result(sql+sql_retrieve)
-        return HttpResponse(
-            persistent_query_data_as_json(query.name, data),
-            content_type="application/json"
-        )
+    def get_insert_sql(self, query, source, row):
+        return get_insert_sql(query.sql_insert, source, None, {"data": row}, None) + ";"
+
+    def get_update_sql(self, query, source, pk_fields, row):
+        pk_values = [value_to_sql(v) for k, v in row.items() if k in pk_fields]
+        return get_update_sql(query.sql_update, source, pk_fields, {"data": row}, pk_values) + ";"
+
+    def get_delete_sql(self, query, source, pk_fields, row):
+        pk_values = [value_to_sql(v) for k, v in row.items() if k in pk_fields]
+        return get_delete_sql(query.sql_delete, source, pk_fields, pk_values) + ";"
 
 
 def apply_middleware(data, middleware):
@@ -205,11 +214,10 @@ def get_sql_retrieve(source, pk_field, pk_value):
 
 
 def get_insert_sql(custom_sql, source, pk_field, request_data, _):
-    pk_value = request_data.get("pk")
     if custom_sql is None or not custom_sql.strip():
-        return build_insert_sql(source, request_data, pk_field)
+        return build_insert_sql(source, request_data)
     return replace_query_params(
-        custom_sql.replace("{pk}", value_to_sql(pk_value)),
+        custom_sql.replace("{pk}", value_to_sql(request_data.get("pk"))),
         request_data.get("data"),
         REPLACE_WITH_NULL
     )
@@ -232,12 +240,11 @@ def get_delete_sql(custom_sql, source, pk_field, pk_value):
 
 
 def build_delete_sql(source, pk_field, pk_value):
-    return "delete from {} where {} = {}".format(source, pk_field, pk_value)
+    return "delete from {} where {}".format(source, build_where(pk_field, pk_value))
 
 
-def build_insert_sql(table_name, request_data, pk_field_name):
+def build_insert_sql(table_name, request_data):
     data = request_data.get("data")
-    pk_value = request_data.get("pk", "null")
     return "insert into {} ({}) values ({})".format(
         table_name,
         build_insert_columns_list(data),
@@ -269,7 +276,13 @@ def build_columns_assignments(data, pk_field_name):
     )
 
 
-def build_where(pk_field_name, pk_value):
+def build_where(pk_field, pk_value):
+    if isinstance(pk_field, list):
+        return " and ".join([_build_where(field, value) for field, value in zip(pk_field, pk_value)])
+    return _build_where(pk_field, pk_value)
+
+
+def _build_where(pk_field_name, pk_value):
     return "{} = {}".format(pk_field_name, value_to_sql(pk_value))
 
 

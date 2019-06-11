@@ -29,14 +29,23 @@ class BuildCustomSQLTestCase(TestCase):
             "1, 'BE', null"
         )
 
+    def test_build_where(self):
+        self.assertEqual(views.build_where("a", 1), "a = 1")
+        self.assertEqual(views.build_where(["a", "b"], [1, 2]), "a = 1 and b = 2")
+
     def test_get_update_sql(self):
         request_data = {
-            "data": {"a": 1, "b": "BE"}
+            "data": {"a": 1, "b": "BE", "c": "X"}
         }
 
         self.assertEqual(
             views.get_update_sql(None, "public.teste", "id", request_data, 5),
-            "update public.teste set a = 1, b = 'BE' where id = 5"
+            "update public.teste set a = 1, b = 'BE', c = 'X' where id = 5"
+        )
+
+        self.assertEqual(
+            views.get_update_sql(None, "public.teste", ["parent_id", "order"], request_data, [5, 1]),
+            "update public.teste set a = 1, b = 'BE', c = 'X' where parent_id = 5 and order = 1"
         )
 
         custom_sql = "update my.table set x = {x}, a = {a}, b = {b} where my_pk = {pk}"
@@ -65,6 +74,16 @@ class BuildCustomSQLTestCase(TestCase):
         self.assertEqual(
             views.get_delete_sql("delete from my.table where id = {pk}", "my.table", "id", 3),
             "delete from my.table where id = 3"
+        )
+
+        self.assertEqual(
+            views.get_delete_sql("", "my.table", "id", 3),
+            "delete from my.table where id = 3"
+        )
+
+        self.assertEqual(
+            views.get_delete_sql("", "my.table", ["parent_id", "order"], [1, 3]),
+            "delete from my.table where parent_id = 1 and order = 3"
         )
 
         self.assertEqual(
