@@ -105,15 +105,6 @@ class DbQueryPersistentBatch(View):
                    for row in request_data.get("data", {}).get("update", [])]
         deletes = [self.get_delete_sql(query, source, pk_fields, row)
                    for row in request_data.get("data", {}).get("delete", [])]
-        # print(10 * "*")
-        # print("\n".join(inserts))
-        # print("\n".join(updates))
-        # print("\n".join(deletes))
-        # print(10 * "*")
-        # return HttpResponse(
-        #     persistent_query_data_as_json(query.name, data),
-        #     content_type="application/json"
-        # )
         "\n".join(deletes + updates + inserts)
         exec_sql("\n".join(deletes + updates + inserts))
         return HttpResponse(json.dumps({"data": "OK"}), content_type="application/json")
