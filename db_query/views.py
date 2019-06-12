@@ -96,11 +96,8 @@ class DbQueryPersistentBatch(View):
 
     def post(self, request, query_id):
         request_data = json.loads(request.body)
-        print(10 * "*")
-        print(request_data)
-        print(10 * "*")
         query = get_query_obj(query_id)
-        source, pk_field = query.insert_pk.split("/")
+        source, _ = query.insert_pk.split("/")
         pk_fields = request_data.get("data", {}).get("meta", {}).get("pk-fields")
         inserts = [self.get_insert_sql(query, source, row)
                    for row in request_data.get("data", {}).get("append", [])]
@@ -108,16 +105,18 @@ class DbQueryPersistentBatch(View):
                    for row in request_data.get("data", {}).get("update", [])]
         deletes = [self.get_delete_sql(query, source, pk_fields, row)
                    for row in request_data.get("data", {}).get("delete", [])]
-        print(10 * "*")
-        print("\n".join(inserts))
-        print("\n".join(updates))
-        print("\n".join(deletes))
-        print(10 * "*")
+        # print(10 * "*")
+        # print("\n".join(inserts))
+        # print("\n".join(updates))
+        # print("\n".join(deletes))
+        # print(10 * "*")
         # return HttpResponse(
         #     persistent_query_data_as_json(query.name, data),
         #     content_type="application/json"
         # )
-        return HttpResponse(json.dumps({"data": "TESTE"}), content_type="application/json")
+        "\n".join(deletes + updates + inserts)
+        exec_sql("\n".join(deletes + updates + inserts))
+        return HttpResponse(json.dumps({"data": "OK"}), content_type="application/json")
 
     def get_insert_sql(self, query, source, row):
         return get_insert_sql(query.sql_insert, source, None, {"data": row}, None) + ";"
