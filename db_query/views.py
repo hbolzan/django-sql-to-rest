@@ -23,6 +23,7 @@ OPTIONS = "OPTIONS"
 
 REPLACE_WITH_KEY = "K"
 REPLACE_WITH_NULL = "N"
+DEFAULT_CONN_NAME = 'query_db'
 
 
 def load_middleware():
@@ -118,9 +119,10 @@ class DbWithConnQueryPersistentBatch(DbBaseQueryPersistentBatch):
         return do_batch_post(self, request, query_id, conn_name)
 
 
-def do_batch_post(self, request, query_id, conn_name='query_db'):
+def do_batch_post(self, request, query_id, _conn_name=None):
     request_data = json.loads(request.body)
     query = get_query_obj(query_id)
+    conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
     source, _ = query.insert_pk.split("/")
     pk_fields = request_data.get("data", {}).get("meta", {}).get("pk-fields")
     inserts = [self.get_insert_sql(query, source, row)
@@ -163,9 +165,10 @@ def get_current_row_children(data_row, parent_query, depth, exec_sql_fn):
     return data_row
 
 
-def do_get(request, query_id, conn_name='query_db'):
-    exec_sql_fn = lambda sql: exec_sql_with_result(sql, conn_name)
+def do_get(request, query_id, _conn_name=None):
     query = get_object_or_404(PersistentQuery, query_id=query_id)
+    conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
+    exec_sql_fn = lambda sql: exec_sql_with_result(sql, conn_name)
     columns = request.GET.get("columns")
     where = request.GET.get("where")
     depth = int(request.GET.get("depth", 0))
@@ -187,8 +190,9 @@ def do_get(request, query_id, conn_name='query_db'):
     )
 
 
-def do_delete(request, query_id, pk, conn_name='query_db'):
+def do_delete(request, query_id, pk, _conn_name=None):
     query = get_query_obj(query_id)
+    conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
     source, pk_field = query.insert_pk.split("/")
     return HttpResponse(
         persistent_query_execute(
@@ -200,9 +204,10 @@ def do_delete(request, query_id, pk, conn_name='query_db'):
     )
 
 
-def do_method(self, request, query_id, method, get_sql_fn, pk_value=None, conn_name='query_db'):
+def do_method(self, request, query_id, method, get_sql_fn, pk_value=None, _conn_name=None):
     request_data = json.loads(request.body)
     query = get_query_obj(query_id)
+    conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
     source, pk_field = query.insert_pk.split("/")
     sql = get_sql_fn(custom_sql_by_method(query, method), source, pk_field, request_data, pk_value)
     sql_retrieve = get_sql_retrieve(
@@ -353,7 +358,7 @@ def apply_params_to_wrapped_sql(sql, columns, where, order_by):
     ) + sql_where(where) + sql_order_by(order_by)
 
 
-def persistent_query_execute(query_name, sql, conn_name='query_db'):
+def persistent_query_execute(query_name, sql, conn_name):
     cursor = exec_sql(sql, conn_name)
     return json.dumps({
         "status": "OK",
@@ -410,7 +415,7 @@ def request_data_to_dict(request_data):
     return {p: request_data.get(p) for p in request_data}
 
 
-def table_data_as_json(request, conn_name='query_db'):
+def table_data_as_json(request, conn_name=DEFAULT_CONN_NAME):
     return json.dumps({
         "status": "OK",
         "table": request.GET.get('table'),
@@ -418,11 +423,11 @@ def table_data_as_json(request, conn_name='query_db'):
     }, ensure_ascii=False)
 
 
-def exec_sql_with_result(sql, conn_name='query_db'):
+def exec_sql_with_result(sql, conn_name):
     return dictfetchall(exec_sql(sql, conn_name))
 
 
-def exec_sql(sql, conn_name='query_db'):
+def exec_sql(sql, conn_name):
     cursor = connections[conn_name].cursor()
     cursor.execute(sql)
     return cursor
