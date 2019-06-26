@@ -38,12 +38,18 @@ def load_middleware():
 
 MIDDLEWARE = load_middleware()
 
+
 class DbQueryAdhoc(View):
     def get(self, request):
         return HttpResponse(table_data_as_json(request), content_type="application/json")
 
 
-class DbQueryPersistent(View):
+class DbWithConnQueryAdhoc(View):
+    def get(self, request, conn_name):
+        return HttpResponse(table_data_as_json(request, conn_name), content_type="application/json")
+
+
+class DbBaseQueryPersistent(View):
 
     http_method_names = ["options", "get", "post", "put", "delete"]
 
@@ -55,25 +61,11 @@ class DbQueryPersistent(View):
         response['allow'] = ','.join(self.http_method_names)
         return response
 
+
+class DbQueryPersistent(DbBaseQueryPersistent):
+
     def get(self, request, query_id):
-        query = get_object_or_404(PersistentQuery, query_id=query_id)
-        columns = request.GET.get("columns")
-        where = request.GET.get("where")
-        depth = int(request.GET.get("depth", 0))
-        order_by = request.GET.get("order")
-        sql = replace_query_params(query.sql_query, request_data_to_dict(request.GET), None)
-        data = apply_middleware(
-            get_children(
-                query,
-                exec_sql_with_result(apply_params_to_wrapped_sql(sql, columns, where, order_by)),
-                depth
-            ),
-            request.GET.get("middleware")
-        )
-        return HttpResponse(
-            persistent_query_data_as_json(query.name, data),
-            content_type="application/json"
-        )
+        return do_get(request, query_id)
 
     def post(self, request, query_id):
         return do_method(self, request, query_id, POST, get_insert_sql)
@@ -82,32 +74,27 @@ class DbQueryPersistent(View):
         return do_method(self, request, query_id, PUT, get_update_sql, pk)
 
     def delete(self, request, query_id, pk):
-        query = get_query_obj(query_id)
-        source, pk_field = query.insert_pk.split("/")
-        return HttpResponse(
-            persistent_query_execute(query.name, get_delete_sql(query.sql_delete, source, pk_field, pk)),
-            content_type="application/json"
-        )
+        return do_delete(request, query_id, pk)
 
 
-class DbQueryPersistentBatch(View):
+class DbWithConnQueryPersistent(DbBaseQueryPersistent):
+
+    def get(self, request, conn_name, query_id):
+        return do_get(request, query_id, conn_name)
+
+    def post(self, request, conn_name, query_id):
+        return do_method(self, request, query_id, POST, get_insert_sql, None, conn_name)
+
+    def put(self, request, conn_name, query_id, pk):
+        return do_method(self, request, query_id, PUT, get_update_sql, pk, conn_name)
+
+    def delete(self, request, conn_name, query_id, pk):
+        return do_delete(request, query_id, pk, conn_name)
+
+
+class DbBaseQueryPersistentBatch(View):
 
     http_method_names = ["options", "post",]
-
-    def post(self, request, query_id):
-        request_data = json.loads(request.body)
-        query = get_query_obj(query_id)
-        source, _ = query.insert_pk.split("/")
-        pk_fields = request_data.get("data", {}).get("meta", {}).get("pk-fields")
-        inserts = [self.get_insert_sql(query, source, row)
-                   for row in request_data.get("data", {}).get("append", [])]
-        updates = [self.get_update_sql(query, source, pk_fields, row)
-                   for row in request_data.get("data", {}).get("update", [])]
-        deletes = [self.get_delete_sql(query, source, pk_fields, row)
-                   for row in request_data.get("data", {}).get("delete", [])]
-        "\n".join(deletes + updates + inserts)
-        exec_sql("\n".join(deletes + updates + inserts))
-        return HttpResponse(json.dumps({"data": "OK"}), content_type="application/json")
 
     def get_insert_sql(self, query, source, row):
         return get_insert_sql(query.sql_insert, source, None, {"data": row}, None) + ";"
@@ -121,30 +108,99 @@ class DbQueryPersistentBatch(View):
         return get_delete_sql(query.sql_delete, source, pk_fields, pk_values) + ";"
 
 
-def apply_middleware(data, middleware):
+class DbQueryPersistentBatch(DbBaseQueryPersistentBatch):
+    def post(self, request, query_id):
+        return do_batch_post(self, request, query_id)
+
+
+class DbWithConnQueryPersistentBatch(DbBaseQueryPersistentBatch):
+    def post(self, request, conn_name, query_id):
+        return do_batch_post(self, request, query_id, conn_name)
+
+
+def do_batch_post(self, request, query_id, conn_name='query_db'):
+    request_data = json.loads(request.body)
+    query = get_query_obj(query_id)
+    source, _ = query.insert_pk.split("/")
+    pk_fields = request_data.get("data", {}).get("meta", {}).get("pk-fields")
+    inserts = [self.get_insert_sql(query, source, row)
+               for row in request_data.get("data", {}).get("append", [])]
+    updates = [self.get_update_sql(query, source, pk_fields, row)
+               for row in request_data.get("data", {}).get("update", [])]
+    deletes = [self.get_delete_sql(query, source, pk_fields, row)
+               for row in request_data.get("data", {}).get("delete", [])]
+    "\n".join(deletes + updates + inserts)
+    exec_sql("\n".join(deletes + updates + inserts), conn_name)
+    return HttpResponse(json.dumps({"data": "OK"}), content_type="application/json")
+
+
+
+def apply_middleware(data, middleware, exec_sql_fn):
     if middleware is None:
         return data
     mw_fns = [MIDDLEWARE.get(mw).apply_middleware for mw in middleware.split("~")]
-    return reduce(lambda d, fn: fn(d, exec_sql_with_result), mw_fns, data)
+    return reduce(lambda d, fn: fn(d, exec_sql_fn), mw_fns, data)
 
 
-def get_children(parent_query, parent_data, depth):
+def get_children(parent_query, parent_data, depth, exec_sql_fn):
     if depth < 1:
         return parent_data
-    return [get_current_row_children(row, parent_query, depth) for row in parent_data]
+    return [get_current_row_children(row, parent_query, depth, exec_sql_fn) for row in parent_data]
 
 
-def get_current_row_children(data_row, parent_query, depth):
+def get_current_row_children(data_row, parent_query, depth, exec_sql_fn):
     _, parent_pk_field = parent_query.insert_pk.split("/")
     parent_pk = data_row.get(parent_pk_field)
     for nested_query in parent_query.nested_query.all():
         base_sql = nested_query.child.sql_query
         sql = base_sql.format(parent_pk=value_to_sql(parent_pk))
-        data_row[nested_query.attr_name] = get_children(nested_query.child, exec_sql_with_result(sql), depth-1)
+        data_row[nested_query.attr_name] = get_children(
+            nested_query.child,
+            exec_sql_fn(sql),
+            depth-1,
+            exec_sql_fn
+        )
     return data_row
 
 
-def do_method(self, request, query_id, method, get_sql_fn, pk_value=None):
+def do_get(request, query_id, conn_name='query_db'):
+    exec_sql_fn = lambda sql: exec_sql_with_result(sql, conn_name)
+    query = get_object_or_404(PersistentQuery, query_id=query_id)
+    columns = request.GET.get("columns")
+    where = request.GET.get("where")
+    depth = int(request.GET.get("depth", 0))
+    order_by = request.GET.get("order")
+    sql = replace_query_params(query.sql_query, request_data_to_dict(request.GET), None)
+    data = apply_middleware(
+        get_children(
+            query,
+            exec_sql_fn(apply_params_to_wrapped_sql(sql, columns, where, order_by)),
+            depth,
+            exec_sql_fn
+        ),
+        request.GET.get("middleware"),
+        exec_sql_fn
+    )
+    return HttpResponse(
+        persistent_query_data_as_json(query.name, data),
+        content_type="application/json"
+    )
+
+
+def do_delete(request, query_id, pk, conn_name='query_db'):
+    query = get_query_obj(query_id)
+    source, pk_field = query.insert_pk.split("/")
+    return HttpResponse(
+        persistent_query_execute(
+            query.name,
+            get_delete_sql(query.sql_delete, source, pk_field, pk),
+            conn_name
+        ),
+        content_type="application/json"
+    )
+
+
+def do_method(self, request, query_id, method, get_sql_fn, pk_value=None, conn_name='query_db'):
     request_data = json.loads(request.body)
     query = get_query_obj(query_id)
     source, pk_field = query.insert_pk.split("/")
@@ -154,7 +210,7 @@ def do_method(self, request, query_id, method, get_sql_fn, pk_value=None):
         pk_field,
         get_retrieve_pk_value(request_data, pk_field, query.query_pk, pk_value)
     )
-    data = exec_sql_with_result(sql+sql_retrieve)
+    data = exec_sql_with_result(sql+sql_retrieve, conn_name)
     return HttpResponse(
         persistent_query_data_as_json(query.name, data),
         content_type="application/json"
@@ -297,8 +353,8 @@ def apply_params_to_wrapped_sql(sql, columns, where, order_by):
     ) + sql_where(where) + sql_order_by(order_by)
 
 
-def persistent_query_execute(query_name, sql):
-    cursor = exec_sql(sql)
+def persistent_query_execute(query_name, sql, conn_name='query_db'):
+    cursor = exec_sql(sql, conn_name)
     return json.dumps({
         "status": "OK",
         "query": query_name,
@@ -322,7 +378,7 @@ def replace_query_params(sql, params, default_rule):
     * Query parameters must use string format syntax
       Example:
           select * from some_table where id = {id} and age > {min_age}
-    * Special key _search_ will be replaced by %<value>%
+    * Special key _search_ will be replaced with %<value>%
     """
     return sql.format(**build_replace_dict(get_format_keys(sql), params, default_rule))
 
@@ -354,20 +410,20 @@ def request_data_to_dict(request_data):
     return {p: request_data.get(p) for p in request_data}
 
 
-def table_data_as_json(request):
+def table_data_as_json(request, conn_name='query_db'):
     return json.dumps({
         "status": "OK",
         "table": request.GET.get('table'),
-        "data": exec_sql_with_result(get_sql(request)),
+        "data": exec_sql_with_result(get_sql(request), conn_name),
     }, ensure_ascii=False)
 
 
-def exec_sql_with_result(sql):
-    return dictfetchall(exec_sql(sql))
+def exec_sql_with_result(sql, conn_name='query_db'):
+    return dictfetchall(exec_sql(sql, conn_name))
 
 
-def exec_sql(sql):
-    cursor = connections['query_db'].cursor()
+def exec_sql(sql, conn_name='query_db'):
+    cursor = connections[conn_name].cursor()
     cursor.execute(sql)
     return cursor
 
