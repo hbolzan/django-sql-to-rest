@@ -39,7 +39,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_extensions",
+    "django_mptt_admin",
     "corsheaders",
+    "menus",
     "db_query",
     "services",
 ]

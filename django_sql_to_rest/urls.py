@@ -20,6 +20,7 @@ admin.site.site_header = 'SQL To REST Administration'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/menus/', include('menus.urls')),
     path('api/query/', include('db_query.urls')),
     path('api/service/', include('services.urls')),
 ]
