@@ -182,7 +182,7 @@ def do_get(request, query_id, _conn_name=None):
             exec_sql_fn
         ),
         request.GET.get("middleware"),
-        exec_sql_fn
+        lambda conn: lambda sql: exec_sql_with_result(sql, conn or conn_name)
     )
     return HttpResponse(
         persistent_query_data_as_json(query.name, data),

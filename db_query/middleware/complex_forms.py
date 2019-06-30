@@ -34,12 +34,14 @@ def apply_middleware(raw_data, exec_sql_fn, *args, **kwargs):
     return list(map(functools.partial(adapt_complex_table, exec_sql_fn, get_validation), raw_data))
 
 
-def adapt_complex_table(exec_sql_fn, get_validation_fn, raw_complex_table):
+def adapt_complex_table(get_exec_sql_fn, get_validation_fn, raw_complex_table):
+    conn_name, dataset_name = dataset_with_connection(raw_complex_table)
+    exec_sql_fn = get_exec_sql_fn(conn_name)
     fields_defs = adapt_columns(raw_complex_table.get("columns"), exec_sql_fn, get_validation_fn)
     editable = raw_complex_table.get("read_only") != "S"
     return {
         "id": raw_complex_table.get("id").replace("_", "-").lower(),
-        "dataset-name": raw_complex_table.get("tabela_nome").split(";")[0].replace('.', '-'),
+        "dataset-name": dataset_name,
         "title": raw_complex_table.get("descricao"),
         "pk-fields": raw_complex_table.get("coluna_pk").split(","),
         "auto-pk": raw_complex_table.get("pk_automatica") == "S",
@@ -55,6 +57,17 @@ def adapt_complex_table(exec_sql_fn, get_validation_fn, raw_complex_table):
             key=lambda c: c.get("search-result-order") or 0
         ),
     }
+
+
+def dataset_with_connection(raw_complex_table):
+    dataset_specs = raw_complex_table.get("tabela_nome").split("/")
+    if len(dataset_specs) > 1:
+        conn_name = dataset_specs[0]
+        dataset_name = dataset_specs[1]
+    else:
+        conn_name = None
+        dataset_name = dataset_specs[0]
+    return conn_name, dataset_name.split(";")[0].replace('.', '-')
 
 
 def adapt_columns(raw_columns, exec_sql_fn, get_validation_fn):
