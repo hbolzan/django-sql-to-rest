@@ -118,7 +118,9 @@ def merge_lookup_column(column, key_columns, exec_sql_fn, get_validation_fn):
 
 
 def adapt_column(column, get_validation_fn):
-    default_value = str(column.get("valor_default", "")).strip()
+    valor_default = column.get("valor_default")
+    default_value = str(valor_default).strip() if valor_default else None
+    print(default_value)
     return dict({
         "order": column.get("ordem"),
         "name": column.get("campo"),
