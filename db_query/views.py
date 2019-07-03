@@ -343,10 +343,12 @@ def value_to_sql(value):
     return str(quoted_if_non_numeric(value))
 
 
+# TODO: refactor this using type annotations
 def quoted_if_non_numeric(s):
-    if type(s) == str:
-        return s if s.isnumeric() else "'{}'".format(s.strip("'"))
-    return s
+    return "'{}'".format(s.strip("'"))
+    # if type(s) == str:
+    #     return s if s.isnumeric() else "'{}'".format(s.strip("'"))
+    # return s
 
 
 def apply_params_to_wrapped_sql(sql, columns, where, order_by):
