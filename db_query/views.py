@@ -6,6 +6,7 @@ import pprint
 import string
 import simplejson as json
 from functools import reduce
+from django.core.exceptions import ValidationError
 from django.utils.encoding import force_text
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
@@ -13,7 +14,7 @@ from django.http import HttpResponse
 from django.views import View
 from django.db import connections
 from django_sql_to_rest.common import trace
-from dstr_common_lib.controller import handle_service_request
+from dstr_common_lib.controller import handle_simple_service_request
 from db_query.models import PersistentQuery
 
 
@@ -126,25 +127,18 @@ def do_batch_post(self, request, query_id, _conn_name=None):
     conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
     source, _ = query.insert_pk.split("/")
     pk_fields = request_data.get("data", {}).get("meta", {}).get("pk-fields")
-    inserts = [self.get_insert_sql(query, source, apply_service_method(query.before_insert, row))
+    try:
+        inserts = [self.get_insert_sql(query, source, apply_service_method(query.before_insert, row))
                for row in request_data.get("data", {}).get("append", [])]
-    updates = [self.get_update_sql(query, source, pk_fields, row)
+        updates = [self.get_update_sql(query, source, pk_fields, apply_service_method(query.before_update, row))
                for row in request_data.get("data", {}).get("update", [])]
-    deletes = [self.get_delete_sql(query, source, pk_fields, row)
+        deletes = [self.get_delete_sql(query, source, pk_fields, apply_service_methdo(query.before_delete, row))
                for row in request_data.get("data", {}).get("delete", [])]
+    except Exception as error:
+        return service_error_response(error.args[0], status=500)
     "\n".join(deletes + updates + inserts)
     exec_sql("\n".join(deletes + updates + inserts), conn_name)
     return HttpResponse(json.dumps({"data": "OK"}), content_type="application/json")
-
-
-def apply_service_method(action, payload):
-    if action is None:
-        return payload
-    service, method = action.split("/")
-    prin("** Calling service method **")
-    service_response = handle_service_request(service, method, payload)
-    print(service_response)
-    return service_response
 
 
 def apply_middleware(data, middleware, exec_sql_fn):
@@ -215,11 +209,14 @@ def do_delete(request, query_id, pk, _conn_name=None):
 
 
 def do_method(self, request, query_id, method, get_sql_fn, pk_value=None, _conn_name=None):
-    request_data = json.loads(request.body)
     query = get_query_obj(query_id)
+    before_method_action = get_before_method_action(method, query)
+    try:
+        request_data = apply_service_method(before_method_action,  json.loads(request.body))
+    except Exception as error:
+        return service_error_response(error.args[0], status=500)
     conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
     source, pk_field = query.insert_pk.split("/")
-    # source, pk_field = get_query_source(query)
     sql = get_sql_fn(custom_sql_by_method(query, method), source, pk_field, request_data, pk_value)
     sql_retrieve = get_sql_retrieve(
         get_query_source(source, query),
@@ -230,6 +227,43 @@ def do_method(self, request, query_id, method, get_sql_fn, pk_value=None, _conn_
     return HttpResponse(
         persistent_query_data_as_json(query.name, data),
         content_type="application/json"
+    )
+
+
+def get_before_method_action(method, query):
+    return {
+        POST: query.before_insert,
+        PUT: query.before_update,
+        DELETE: query.before_delete,
+    }.get(method)
+
+
+def apply_service_method(action, payload):
+    print(payload)
+    try:
+        service, method = action.split("/")
+    except (AttributeError, ValueError):
+        return payload
+
+    service_response = handle_simple_service_request(service, method, payload)
+    if is_service_error(service_response):
+        raise Exception(service_response)
+    return service_response or payload
+
+
+def is_service_error(service_response):
+    return bool(
+        isinstance(service_response, dict) and
+        service_response.get("status") and
+        service_response["status"] == "ERROR"
+    )
+
+
+def service_error_response(response, status):
+    return HttpResponse(
+        content=json.dumps(response, ensure_ascii=False),
+        content_type="application/json",
+        status=status
     )
 
 
