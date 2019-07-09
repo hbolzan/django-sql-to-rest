@@ -10,8 +10,11 @@ class PersistentQuery(models.Model):
     description = models.CharField(max_length=255, blank=True, null=True)
     sql_query = models.TextField("SQL Query", blank=True, null=True)
     sql_insert = models.TextField("SQL Insert", blank=True, null=True)
+    before_insert = models.CharField("Before insert", max_length=255, blank=True, null=True, help_text="Method in a service to be called before record is inserted (service/method)")
     sql_update = models.TextField("SQL Update", blank=True, null=True)
+    before_update = models.CharField("Before insert", max_length=255, blank=True, null=True, help_text="Method in a service to be called before record is updated (service/method)")
     sql_delete = models.TextField("SQL Delete", blank=True, null=True)
+    before_delete = models.CharField("Before insert", max_length=255, blank=True, null=True, help_text="Method in a service to be called before record is deleted (service/method)")
 
     def __str__(self):
         return self.query_id

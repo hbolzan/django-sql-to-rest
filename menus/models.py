@@ -22,23 +22,37 @@ class SystemMenu(MPTTModel):
 
 
 def as_dict(cls):
-    return build_menu_entries(cls.objects)
+    root = cls.objects.first().get_root()
+    entries = build_menu_entries(root)
+    return entries
 
 
-def build_menu_entries(node_manager):
-    return [new_menu_node(n) for n in node_manager.all()]
+def build_menu_entries(node_instance):
+    instance = node_instance
+    entries = []
+    while instance:
+        node, instance = new_menu_node(instance)
+        entries.append(node)
+    return entries
 
 
-def new_menu_node(menu_obj):
-    children = build_menu_entries(menu_obj.children)
+def new_menu_node(node_instance):
+    children = get_children(node_instance)
     return dict(
         {
-            "caption": menu_obj.caption,
-            "description": menu_obj.description,
-            "icon": menu_obj.icon,
-            "enabled": menu_obj.enabled,
-            "separator": menu_obj.separator,
-            "route": menu_obj.route,
+            "caption": node_instance.caption,
+            "description": node_instance.description,
+            "icon": node_instance.icon,
+            "enabled": node_instance.enabled,
+            "separator": node_instance.separator,
+            "route": node_instance.route,
         },
         **({"children": children} if children else {})
-    )
+    ), node_instance.get_next_sibling()
+
+
+def get_children(node_instance):
+    children = node_instance.get_children()
+    if children:
+        return build_menu_entries(children.first())
+    return None

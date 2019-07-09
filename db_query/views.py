@@ -13,6 +13,7 @@ from django.http import HttpResponse
 from django.views import View
 from django.db import connections
 from django_sql_to_rest.common import trace
+from dstr_common_lib.controller import handle_service_request
 from db_query.models import PersistentQuery
 
 
@@ -125,7 +126,7 @@ def do_batch_post(self, request, query_id, _conn_name=None):
     conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
     source, _ = query.insert_pk.split("/")
     pk_fields = request_data.get("data", {}).get("meta", {}).get("pk-fields")
-    inserts = [self.get_insert_sql(query, source, row)
+    inserts = [self.get_insert_sql(query, source, apply_service_method(query.before_insert, row))
                for row in request_data.get("data", {}).get("append", [])]
     updates = [self.get_update_sql(query, source, pk_fields, row)
                for row in request_data.get("data", {}).get("update", [])]
@@ -135,6 +136,15 @@ def do_batch_post(self, request, query_id, _conn_name=None):
     exec_sql("\n".join(deletes + updates + inserts), conn_name)
     return HttpResponse(json.dumps({"data": "OK"}), content_type="application/json")
 
+
+def apply_service_method(action, payload):
+    if action is None:
+        return payload
+    service, method = action.split("/")
+    prin("** Calling service method **")
+    service_response = handle_service_request(service, method, payload)
+    print(service_response)
+    return service_response
 
 
 def apply_middleware(data, middleware, exec_sql_fn):
@@ -209,9 +219,10 @@ def do_method(self, request, query_id, method, get_sql_fn, pk_value=None, _conn_
     query = get_query_obj(query_id)
     conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
     source, pk_field = query.insert_pk.split("/")
+    # source, pk_field = get_query_source(query)
     sql = get_sql_fn(custom_sql_by_method(query, method), source, pk_field, request_data, pk_value)
     sql_retrieve = get_sql_retrieve(
-        source,
+        get_query_source(source, query),
         pk_field,
         get_retrieve_pk_value(request_data, pk_field, query.query_pk, pk_value)
     )
@@ -220,6 +231,12 @@ def do_method(self, request, query_id, method, get_sql_fn, pk_value=None, _conn_
         persistent_query_data_as_json(query.name, data),
         content_type="application/json"
     )
+
+
+def get_query_source(source, query):
+    if not query.sql_query:
+        return source
+    return "({}) qsearch".format(query.sql_query.replace("{_search_}", "'%%'"))
 
 
 def get_retrieve_pk_value(request_data, pk_field, query_pk, pk_value):
@@ -334,6 +351,8 @@ def build_where(pk_field, pk_value):
 
 
 def _build_where(pk_field_name, pk_value):
+    if pk_value == "null":
+        return "{} is null".format(pk_field_name)
     return "{} = {}".format(pk_field_name, value_to_sql(pk_value))
 
 
@@ -345,7 +364,9 @@ def value_to_sql(value):
 
 # TODO: refactor this using type annotations
 def quoted_if_non_numeric(s):
-    return "'{}'".format(s.strip("'"))
+    if s == "null":
+        return s
+    return "'{}'".format(str(s).strip("'"))
     # if type(s) == str:
     #     return s if s.isnumeric() else "'{}'".format(s.strip("'"))
     # return s

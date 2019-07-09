@@ -128,7 +128,7 @@ def adapt_column(column, get_validation_fn):
         "required": column.get("obrigatorio") == YES,
         "visible": column.get("visivel") == YES,
         "read-only": column.get("read_only") == YES,
-        "persistent": column.get("gravar") == YES,
+        "persistent?": column.get("gravar") == YES,
         "data-type": DATA_TYPES.get(column.get("data_type"), "char"),
         "alignment": ALIGNMENTS.get(column.get("alinhamento"), "default"),
         "default": default_value if default_value else None,

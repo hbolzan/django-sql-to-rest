@@ -21,6 +21,7 @@ def adapt_bundled_tables(bundled_tables, exec_sql_fn):
 
 def adapt_bundled_table(table, exec_sql_fn):
     raw_params = params_to_dict(table.get("parametros").split("\n"))
+    print(raw_params)
     return {
         "tab-title": raw_params.get("TITULO_ABA"),
         "master": raw_params.get("PAINEL_MASTER") == "S",
@@ -69,7 +70,7 @@ def params_to_dict(params):
         p = param.split("=")
         if len(p) < 2:
             return [param, None]
-        return p
+        return p[0], p[1].strip()
 
     return {p[0]: p[1] for p in map(split_param, params)}
 
