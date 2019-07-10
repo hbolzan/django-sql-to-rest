@@ -5,8 +5,11 @@ import importlib
 import pprint
 import string
 import simplejson as json
+from datetime import date, datetime
 from functools import reduce
+from django.core.serializers import serialize
 from django.core.exceptions import ValidationError
+from django.core.serializers.json import DjangoJSONEncoder
 from django.utils.encoding import force_text
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404
@@ -132,7 +135,7 @@ def do_batch_post(self, request, query_id, _conn_name=None):
                for row in request_data.get("data", {}).get("append", [])]
         updates = [self.get_update_sql(query, source, pk_fields, apply_service_method(query.before_update, row))
                for row in request_data.get("data", {}).get("update", [])]
-        deletes = [self.get_delete_sql(query, source, pk_fields, apply_service_methdo(query.before_delete, row))
+        deletes = [self.get_delete_sql(query, source, pk_fields, apply_service_method(query.before_delete, row))
                for row in request_data.get("data", {}).get("delete", [])]
     except Exception as error:
         return service_error_response(error.args[0], status=500)
@@ -424,12 +427,23 @@ def persistent_query_execute(query_name, sql, conn_name):
     }, ensure_ascii=False)
 
 
+def json_serial(obj):
+    """JSON serializer for objects not serializable by default json code"""
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError ("Type %s not serializable" % type(obj))
+
+
 def persistent_query_data_as_json(query_name, data):
-    return json.dumps({
-        "status": "OK",
-        "query": query_name,
-        "data": data,
-    }, ensure_ascii=False)
+    return json.dumps(
+        {
+            "status": "OK",
+            "query": query_name,
+            "data": data,
+        },
+        ensure_ascii=False,
+        default=json_serial
+    )
 
 
 def replace_query_params(sql, params, default_rule):
