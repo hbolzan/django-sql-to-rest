@@ -139,6 +139,8 @@ def adapt_column(column, get_validation_fn):
         "lookup-filter": column.get("lookup_filtro"),
         "validation": adapt_validation(column.get("validacao"), get_validation_fn),
         "search-result?": column.get("visivel_pesquisa") == "S",
+        "line-break?": column.get("forcar_quebra") == "S",
+        "additional-params": split_kv_multilines(column.get("parametros_adicionais"), "="),
         "search-result-order": column.get("ordem_pesquisa")
     }, **adapt_input_mask(column.get("mascara")))
 
