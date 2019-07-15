@@ -75,7 +75,7 @@ def adapt_columns(raw_columns, exec_sql_fn, get_validation_fn):
     key_columns = filter(lambda c: c.get("tipo") == LOOKUP_KEY, marked_raw_columns)
     return [merge_lookup_column(c, key_columns, exec_sql_fn, get_validation_fn)
             for c in marked_raw_columns
-            if c.get("tipo") != LOOKUP_KEY and c.get("visivel") == YES]
+            if c.get("tipo") != LOOKUP_KEY]
 
 
 def mark_key_columns(raw_columns):
