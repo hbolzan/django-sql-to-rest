@@ -98,7 +98,15 @@ DATABASES = {
         'PASSWORD': os.getenv('DATA_DB_PASS'),
         'HOST': os.getenv('DATA_DB_HOST'),
         'PORT': os.getenv('DATA_DB_PORT'),
-    }
+    },
+    'reglass': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.getenv('REGLASS_DB_NAME'),
+        'USER': os.getenv('REGLASS_DB_USER'),
+        'PASSWORD': os.getenv('REGLASS_DB_PASS'),
+        'HOST': os.getenv('REGLASS_DB_HOST'),
+        'PORT': os.getenv('REGLASS_DB_PORT'),
+    },
 }
 
 # to apply raw sql to specific connection
@@ -152,3 +160,4 @@ if os.getenv("DOCKERIZED") is None:
         from .local_settings import *  # noqa
     except ImportError:
         pass
+
