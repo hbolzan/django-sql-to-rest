@@ -1,9 +1,9 @@
 # django-sql-to-rest
 # parent image contains all dependencies necessary to run a Django application
 
-ARG VERSION
-ARG USER
-FROM ${USER}/base-for-django:latest
+# ARG VERSION
+# ARG USER
+FROM hbolzan/base-for-django:latest
 
 # project root directory
 RUN mkdir -p /app/sql-to-rest

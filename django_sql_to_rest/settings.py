@@ -79,10 +79,30 @@ CORS_ORIGIN_ALLOW_ALL = True
 WSGI_APPLICATION = 'django_sql_to_rest.wsgi.application'
 
 
+def get_extra_databases():
+    try:
+        extras = os.getenvt("EXTRAS").split(",")
+    except AttributeError:
+        return {}
+    return {extra: get_extra_db(extra) for extra in extras}
+
+
+def get_extra_db(extra_name):
+    extra_up = extra_name.upper()
+    return {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': os.getenv('{}_DB_NAME'.format(extra_up)),
+        'USER': os.getenv('{}_DB_USER'.format(extra_up)),
+        'PASSWORD': os.getenv('{}_DB_PASS'.format(extra_up)),
+        'HOST': os.getenv('{}_DB_HOST'.format(extra_up)),
+        'PORT': os.getenv('{}_DB_PORT'.format(extra_up)),
+    }
+
+
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
-DATABASES = {
+DATABASES = dict({
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
         'NAME': os.getenv('API_DB_NAME'),
@@ -99,7 +119,8 @@ DATABASES = {
         'HOST': os.getenv('DATA_DB_HOST'),
         'PORT': os.getenv('DATA_DB_PORT'),
     }
-}
+}, **get_extra_databases())
+
 
 # to apply raw sql to specific connection
 #
