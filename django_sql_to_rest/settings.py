@@ -12,21 +12,22 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 
 import os
 
+DOCKERIZED = os.getenv("DOCKERIZED")
+DEBUG  = os.getenv('DEBUG') == "S"
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 # Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'k+%hc4mptvm32ul#3jr)$b7)yy#hqc*&9hjn$4$%l@=7-q*$b2'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-
-# ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ["localhost", ]
+if DOCKERIZED or not DEBUG:
+    ALLOWED_HOSTS = ["*", ]
+else:
+    ALLOWED_HOSTS = ["localhost", ]
 
 
 # Application definition
@@ -79,14 +80,6 @@ CORS_ORIGIN_ALLOW_ALL = True
 WSGI_APPLICATION = 'django_sql_to_rest.wsgi.application'
 
 
-def get_extra_databases():
-    try:
-        extras = os.getenvt("EXTRAS").split(",")
-    except AttributeError:
-        return {}
-    return {extra: get_extra_db(extra) for extra in extras}
-
-
 def get_extra_db(extra_name):
     extra_up = extra_name.upper()
     return {
@@ -97,6 +90,14 @@ def get_extra_db(extra_name):
         'HOST': os.getenv('{}_DB_HOST'.format(extra_up)),
         'PORT': os.getenv('{}_DB_PORT'.format(extra_up)),
     }
+
+
+def get_extra_databases():
+    try:
+        extras = os.getenv("EXTRAS").split(",")
+    except AttributeError:
+        return {}
+    return {extra: get_extra_db(extra) for extra in extras}
 
 
 # Database
@@ -121,6 +122,8 @@ DATABASES = dict({
     }
 }, **get_extra_databases())
 
+if DEBUG:
+    print(DATABASES)
 
 # to apply raw sql to specific connection
 #
@@ -168,7 +171,7 @@ USE_TZ = True
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = '/static/'
 
-if os.getenv("DOCKERIZED") is None:
+if DOCKERIZED is None:
     try:
         from .local_settings import *  # noqa
     except ImportError:
