@@ -29,6 +29,7 @@ OPTIONS = "OPTIONS"
 REPLACE_WITH_KEY = "K"
 REPLACE_WITH_NULL = "N"
 DEFAULT_CONN_NAME = 'query_db'
+DEFAULT_ROWS_PER_PAGE = 10
 
 
 def load_middleware():
@@ -175,17 +176,14 @@ def get_current_row_children(data_row, parent_query, depth, exec_sql_fn):
 def do_get(request, query_id, _conn_name=None):
     query = get_object_or_404(PersistentQuery, query_id=query_id)
     conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
+    params = get_GET_params(request)
     exec_sql_fn = lambda sql: exec_sql_with_result(sql, conn_name)
-    columns = request.GET.get("columns")
-    where = request.GET.get("where")
-    depth = int(request.GET.get("depth", 0))
-    order_by = request.GET.get("order")
     sql = replace_query_params(query.sql_query, request_data_to_dict(request.GET), None)
     data = apply_middleware(
         get_children(
             query,
-            exec_sql_fn(apply_params_to_wrapped_sql(sql, columns, where, order_by)),
-            depth,
+            exec_sql_fn(apply_pager(apply_params_to_wrapped_sql(sql, **params), **params)),
+            params.get("depth"),
             exec_sql_fn
         ),
         request.GET.get("middleware"),
@@ -196,6 +194,15 @@ def do_get(request, query_id, _conn_name=None):
         content_type="application/json"
     )
 
+def get_GET_params(request):
+    return {
+        "columns": request.GET.get("columns"),
+        "where": request.GET.get("where"),
+        "order_by": request.GET.get("order"),
+        "depth": int(request.GET.get("depth", 0)),
+        "rows_per_page": int(request.GET.get("rows_per_page")),
+        "page": int(request.GET.get("page")),
+    }
 
 def do_delete(request, query_id, pk, _conn_name=None):
     query = get_query_obj(query_id)
@@ -409,13 +416,31 @@ def quoted_if_non_numeric(s):
     # return s
 
 
-def apply_params_to_wrapped_sql(sql, columns, where, order_by):
-    if columns is None and where is None and order_by is None:
+def apply_params_to_wrapped_sql(sql, columns, where, order_by, rows_per_page, page, **kwargs):
+    if columns is None and where is None and order_by is None and rows_per_page is None and page is None:
         return sql
     return 'select {} from {}'.format(
-        sql_columns_list(columns),
+        sql_columns_list(columns) + with_row_count_column(sql, rows_per_page, page),
         "({}) as outer_query".format(sql)
     ) + sql_where(where) + sql_order_by(order_by)
+
+
+def with_row_count_column(sql, rows_per_page, page):
+    if rows_per_page is None and page is None:
+        return ""
+    return ", (select count(*) from ({}) count_query) as rowcount".format(sql)
+
+
+def apply_pager(sql, rows_per_page, page, **kwargs):
+    if rows_per_page is None and page is None:
+        return sql
+    return (
+        "{sql} offset {offset} limit {limit}".format(
+            sql=sql,
+            offset=((page or 0)-1)*(rows_per_page or DEFAULT_ROWS_PER_PAGE),
+            limit=rows_per_page
+        )
+    )
 
 
 def persistent_query_execute(query_name, sql, conn_name):
@@ -434,7 +459,7 @@ def json_serial(obj):
     raise TypeError ("Type %s not serializable" % type(obj))
 
 
-def persistent_query_data_as_json(query_name, data):
+def persistent_query_data_as_json(query_name, data, **kwargs):
     return json.dumps(
         {
             "status": "OK",
@@ -444,6 +469,16 @@ def persistent_query_data_as_json(query_name, data):
         ensure_ascii=False,
         default=json_serial
     )
+
+
+def result_with_pager(rows_per_page, page, **kwargs):
+    if rows_per_page is None and page is None:
+        return {}
+    return {
+        "rows_per_page": rows_per_page or DEFAULT_ROWS_PER_PAGE,
+        "page": page or 1,
+        "max-page": 
+    }
 
 
 def replace_query_params(sql, params, default_rule):
