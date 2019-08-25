@@ -399,7 +399,7 @@ def value_to_sql(value):
     return str(quoted_if_non_numeric(value))
 
 
-# TODO: refactor this using type annotations
+# TODO: REFACTOR THIS!!!
 def quoted_if_non_numeric(s):
     if s == "null":
         return s

@@ -3,6 +3,9 @@ import db_query.views as views
 
 
 class BuildCustomSQLTestCase(TestCase):
+    """
+    SQL builder is horrendously wrong and must be urgently refactored
+    """
     def test_get_format_keys(self):
         self.assertEqual(views.get_format_keys("{a}, {b}, {c}"), ["a", "b", "c"])
 
