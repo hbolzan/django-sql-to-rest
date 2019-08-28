@@ -106,7 +106,7 @@ class DbBaseQueryPersistentBatch(View):
         return get_insert_sql(query.sql_insert, source, None, {"data": row}, None) + ";"
 
     def get_update_sql(self, query, source, pk_fields, row):
-        pk_values = [value_to_sql(v) for k, v in row.items() if k in pk_fields]
+        pk_values = [value_to_sql(row.get(k)) for k in pk_fields]
         return get_update_sql(query.sql_update, source, pk_fields, {"data": row}, pk_values) + ";"
 
     def get_delete_sql(self, query, source, pk_fields, row):
@@ -242,7 +242,6 @@ def get_before_method_action(method, query):
 
 
 def apply_service_method(action, payload):
-    print(payload)
     try:
         service, method = action.split("/")
     except (AttributeError, ValueError):
