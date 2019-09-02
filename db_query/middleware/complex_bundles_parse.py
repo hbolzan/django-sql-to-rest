@@ -1,4 +1,5 @@
 import requests
+import functools
 from django.shortcuts import get_object_or_404
 from db_query.models import PersistentQuery
 
@@ -29,8 +30,32 @@ def adapt_bundled_table(table, exec_sql_fn):
         "detail": raw_params.get("DETAIL") == "S",
         "related-fields": [c.strip() for c in raw_params.get("COLUNAS_DETAIL", "").split(",")],
         "master-fields": [c.strip() for c in raw_params.get("COLUNAS_MASTER", "").split(",")],
-        "definition": fix_none_results(get_child_definition(raw_params.get("COMPLEXA_ID")))
+        "bundle-actions": parse_bundle_actions(raw_params.get("BUNDLE_ACTIONS", "")),
+        "definition": fix_none_results(get_child_definition(raw_params.get("COMPLEXA_ID"))),
     }
+
+
+def parse_bundle_actions(raw_actions):
+    try:
+        return [parse_bundle_action(raw_action) for raw_action in raw_actions.split("~")]
+    except IndexError:
+        return []
+
+
+def parse_bundle_action(raw_action):
+    """
+    Parse action attributes as
+    caption:Recalcular;type:primary;action:reglass_cotacoes.recalcular
+    """
+    def parse_attr(attrs, attr):
+        attr_parts = attr.split(":")
+        return dict(attrs, **{attr_parts[0]: attr_parts[1]})
+
+    return functools.reduce(
+        parse_attr,
+        [action_attrs for action_attrs in raw_action.split(";")],
+        {}
+    )
 
 
 def get_complex_definition(raw_params):
