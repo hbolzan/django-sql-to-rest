@@ -22,7 +22,6 @@ def adapt_bundled_tables(bundled_tables, exec_sql_fn):
 
 def adapt_bundled_table(table, exec_sql_fn):
     raw_params = params_to_dict(table.get("parametros").split("\n"))
-    print(raw_params)
     return {
         "tab-title": raw_params.get("TITULO_ABA"),
         "master": raw_params.get("PAINEL_MASTER") == "S",
@@ -38,18 +37,24 @@ def adapt_bundled_table(table, exec_sql_fn):
 def parse_bundle_actions(raw_actions):
     try:
         return [parse_bundle_action(raw_action) for raw_action in raw_actions.split("~")]
-    except IndexError:
+    except (IndexError, AttributeError):
         return []
 
 
 def parse_bundle_action(raw_action):
     """
-    Parse action attributes as
-    caption:Recalcular;type:primary;action:reglass_cotacoes.recalcular
+    Parse action attributes such as
+    caption:Recalcular;type:primary;action:reglass_cotacoes.recalcular;enabled-states:@view,pending
     """
+    def parse_array_attr(attr):
+        print(attr)
+        if attr[0] != "@":
+            return attr
+        return attr[1:].split(",")
+
     def parse_attr(attrs, attr):
         attr_parts = attr.split(":")
-        return dict(attrs, **{attr_parts[0]: attr_parts[1]})
+        return dict(attrs, **{attr_parts[0]: parse_array_attr(attr_parts[1])})
 
     return functools.reduce(
         parse_attr,
