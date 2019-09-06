@@ -15,9 +15,9 @@ class Services(View):
         response['allow'] = ','.join(self.http_method_names)
         return response
 
-    def get(self, request, service, method, param=None):
+    def get(self, request, service_name, method, param=None):
         kwargs = {k: v for k, v in request.GET.items()}
-        service_response = handle_service_request(service, method, param, **kwargs)
+        service_response = handle_service_request(service_name, method, param, **kwargs)
         return HttpResponse(
             content=json.dumps(service_response.get("body"), ensure_ascii=False),
             content_type="application/json",
@@ -26,7 +26,7 @@ class Services(View):
 
     def post(self, request, service_name, method):
         request_data = json.loads(request.body)
-        service_response = handle_service_request(service, method, request_data)
+        service_response = handle_service_request(service_name, method, request_data)
         return HttpResponse(
             content=json.dumps(service_response.get("body"), ensure_ascii=False),
             content_type="application/json",

@@ -200,13 +200,13 @@ This is a work in progress.
 It is possible to add functionality to the API through the `/service` endpoint. It makes `AMQP RPC` calls to running microservices.
 
 ```
-http://localhost:8000/service/get/<service_name>/<method_name>/?param_1=value_1[&param_2=value_2 ...]
+http://localhost:8000/service/<service_name>/<method_name>/?param_1=value_1[&param_2=value_2 ...]
 ```
 
 For instance, if the [common validations](https://github.com/hbolzan/sql-to-rest-common-validations) 
 service is running, the following call in the development server
 ```
-http://localhost:8000/service/get/common_validations/cpf/?cpf_number=123.456.789-09
+http://localhost:8000/service/common_validations/cpf/?cpf_number=123.456.789-09
 ```
 
 will return
