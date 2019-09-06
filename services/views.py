@@ -23,3 +23,12 @@ class Services(View):
             content_type="application/json",
             status=service_response.get("http_status", HTTP_STATUS_OK),
         )
+
+    def post(self, request, service_name, method):
+        request_data = json.loads(request.body)
+        service_response = handle_service_request(service, method, request_data)
+        return HttpResponse(
+            content=json.dumps(service_response.get("body"), ensure_ascii=False),
+            content_type="application/json",
+            status=service_response.get("http_status", HTTP_STATUS_OK),
+        )
