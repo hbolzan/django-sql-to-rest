@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# VERSION=$1
+# echo "# Version: ${VERSION}" > version.txt
+
 until nc -z ${POSTGRES_HOST} ${POSTGRES_PORT}; do
     echo "$(date) - waiting for postgres..."
     sleep 1
