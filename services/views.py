@@ -22,7 +22,7 @@ class Services(View):
         )
 
     def post(self, request, service_name, method):
-        request_data = json.loads(request.body)
+        request_data = json.loads(request.body.decode("utf-8"))
         return self.response_body(
             lambda: handle_service_request(service_name, method, request_data)
         )
