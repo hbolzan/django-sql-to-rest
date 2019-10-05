@@ -19,6 +19,7 @@ from django.db import connections
 from django_sql_to_rest.common import trace
 from dstr_common_lib.controller import handle_simple_service_request
 from db_query.models import PersistentQuery
+from db_query.helpers import sql_columns_list, sql_where, sql_order_by, exec_sql, exec_sql_with_result, dictfetchall
 
 
 DELETE = "DELETE"
@@ -140,7 +141,7 @@ def do_batch_post(self, request, query_id, _conn_name=None):
     except Exception as error:
         return service_error_response(error.args[0], status=500)
     "\n".join(deletes + updates + inserts)
-    exec_sql("\n".join(deletes + updates + inserts), conn_name)
+    exec_sql("\n".join(deletes + updates + inserts), connections[conn_name].cursor())
     return HttpResponse(json.dumps({"data": "OK"}), content_type="application/json")
 
 
@@ -175,7 +176,7 @@ def get_current_row_children(data_row, parent_query, depth, exec_sql_fn):
 def do_get(request, query_id, _conn_name=None):
     query = get_object_or_404(PersistentQuery, query_id=query_id)
     conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
-    exec_sql_fn = lambda sql: exec_sql_with_result(sql, conn_name)
+    exec_sql_fn = lambda sql: exec_sql_with_result(sql, connections[conn_name].cursor())
     columns = request.GET.get("columns")
     where = request.GET.get("where")
     depth = int(request.GET.get("depth", 0))
@@ -189,7 +190,7 @@ def do_get(request, query_id, _conn_name=None):
             exec_sql_fn
         ),
         request.GET.get("middleware"),
-        lambda conn: lambda sql: exec_sql_with_result(sql, conn or conn_name)
+        lambda conn: lambda sql: exec_sql_with_result(sql, connections[conn or conn_name].cursor())
     )
     return HttpResponse(
         persistent_query_data_as_json(query.name, data),
@@ -226,7 +227,7 @@ def do_method(self, request, query_id, method, get_sql_fn, pk_value=None, _conn_
         pk_field,
         get_retrieve_pk_value(request_data, pk_field, query.query_pk, pk_value)
     )
-    data = exec_sql_with_result(sql+sql_retrieve, conn_name)
+    data = exec_sql_with_result(sql+sql_retrieve, connections[conn_name].cursor())
     return HttpResponse(
         persistent_query_data_as_json(query.name, data),
         content_type="application/json"
@@ -418,7 +419,7 @@ def apply_params_to_wrapped_sql(sql, columns, where, order_by):
 
 
 def persistent_query_execute(query_name, sql, conn_name):
-    cursor = exec_sql(sql, conn_name)
+    cursor = exec_sql(sql, connections[conn_name].cursor())
     return json.dumps({
         "status": "OK",
         "query": query_name,
@@ -489,48 +490,11 @@ def table_data_as_json(request, conn_name=DEFAULT_CONN_NAME):
     return json.dumps({
         "status": "OK",
         "table": request.GET.get('table'),
-        "data": exec_sql_with_result(get_sql(request), conn_name),
+        "data": exec_sql_with_result(get_sql(request), connections[conn_name].cursor()),
     }, ensure_ascii=False)
-
-
-def exec_sql_with_result(sql, conn_name):
-    return dictfetchall(exec_sql(sql, conn_name))
-
-
-def exec_sql(sql, conn_name):
-    cursor = connections[conn_name].cursor()
-    cursor.execute(sql)
-    return cursor
 
 
 def get_sql(request):
     return 'select {} from {}'.format(
         sql_columns_list(request.GET.get("columns")), request.GET.get('table')
     ) + sql_where(request.GET.get("where")) + sql_order_by(request.GET.get("order"))
-
-
-def sql_columns_list(columns):
-    if columns is None:
-        return '*'
-    return ', '.join(columns.split('~'))
-
-
-def sql_where(where):
-    if where is None:
-        return ''
-    return ' where {}'.format(where)
-
-
-def sql_order_by(order_by):
-    if order_by is None:
-        return ''
-    return ' order by {}'.format(', '.join(order_by.split('~')))
-
-
-def dictfetchall(cursor):
-    "Returns all rows from a cursor as a dict"
-    desc = cursor.description
-    return [
-        dict(zip([col[0] for col in desc], row))
-            for row in cursor.fetchall()
-    ]

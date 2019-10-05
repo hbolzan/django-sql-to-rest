@@ -7,4 +7,5 @@ urlpatterns = [
     path('<service_name>/<method>/', csrf_exempt(Services.as_view())),
     path('<service>/<method>/<param>/', csrf_exempt(Services.as_view())),
     path('<service>/<method>/', csrf_exempt(Services.as_view())),
+    path('<service>/data/<dataset_id>/', csrf_exempt(Services.as_view())),
 ]
