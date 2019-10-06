@@ -10,15 +10,21 @@ class Services(View):
     def __init__(self):
         self.http_method_names = ['options', 'get', 'post', 'put', 'delete']
 
-    def options(self, request, service, method, param=None):
+    def options(self, request, service_name, method, param=None, extra=None):
         response = HttpResponse()
         response['allow'] = ','.join(self.http_method_names)
         return response
 
-    def get(self, request, service_name, method, param=None):
-        kwargs = {k: v for k, v in request.GET.items()}
+    def get(self, request, service_name, method, param=None, extra=None):
+        extra_dict = {"extra": extra} if extra else {}
+        kwargs = dict({k: v for k, v in request.GET.items()}, **extra_dict)
         return self.response_body(
             lambda: handle_service_request(service_name, method, param, **kwargs)
+        )
+
+    def delete(self, request, service_name, method, param=None, extra=None):
+        return self.response_body(
+            lambda: handle_service_request(service_name, method, param, extra=extra)
         )
 
     def post(self, request, service_name, method):
