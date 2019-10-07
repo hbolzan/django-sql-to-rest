@@ -71,7 +71,9 @@ class DbBaseQueryPersistent(View):
 
 class DbQueryPersistent(DbBaseQueryPersistent):
 
-    def get(self, request, query_id):
+    def get(self, request, query_id, pk=None):
+        if pk:
+            return get_one(request, query_id, pk)
         return do_get(request, query_id)
 
     def post(self, request, query_id):
@@ -86,7 +88,9 @@ class DbQueryPersistent(DbBaseQueryPersistent):
 
 class DbWithConnQueryPersistent(DbBaseQueryPersistent):
 
-    def get(self, request, conn_name, query_id):
+    def get(self, request, conn_name, query_id, pk=None):
+        if pk:
+            return get_one(request, query_id, pk, conn_name)
         return do_get(request, query_id, conn_name)
 
     def post(self, request, conn_name, query_id):
@@ -181,7 +185,9 @@ def do_get(request, query_id, _conn_name=None):
     where = request.GET.get("where")
     depth = int(request.GET.get("depth", 0))
     order_by = request.GET.get("order")
-    sql = replace_query_params(query.sql_query, request_data_to_dict(request.GET), None)
+    sql = replace_query_params(
+        query.sql_query + "\n" + (query.sql_search_where or ""), request_data_to_dict(request.GET), None
+    )
     data = apply_middleware(
         get_children(
             query,
@@ -202,10 +208,19 @@ def get_one(request, query_id, pk_value, _conn_name=None):
     query = get_object_or_404(PersistentQuery, query_id=query_id)
     conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
     source, pk_field = query.insert_pk.split("/")
-    sql = apply_params_to_wrapped_sql(
-        query.sql_query, request.GET.get("columns"), "{} = '{}'".format(pk_field, pk_value)
+    data = exec_sql_with_result(
+        get_one_sql(query, source, pk_field, pk_value), connections[conn_name].cursor()
     )
-    return exec_sql_with_result(sql, connections[conn_name].cursor())
+    return HttpResponse(
+        persistent_query_data_as_json(query.name, data),
+        content_type="application/json"
+    )
+
+
+def get_one_sql(query, source, pk_field, pk_value):
+    base_sql = "select * from ({}) as q0".format(query.sql_query) if query.sql_query \
+        else "select * from {}".format(source)
+    return  base_sql + "\nwhere {} = '{}'".format(pk_field, pk_value)
 
 
 def do_delete(request, query_id, pk, _conn_name=None):
@@ -283,7 +298,8 @@ def service_error_response(response, status):
 def get_query_source(source, query):
     if not query.sql_query:
         return source
-    return "({}) qsearch".format(query.sql_query.replace("{_search_}", "'%%'"))
+    sql = query.sql_query + "\n" + query.sql_search_were
+    return "({}) qsearch".format(sql.replace("{_search_}", "'%%'"))
 
 
 def get_retrieve_pk_value(request_data, pk_field, query_pk, pk_value):
