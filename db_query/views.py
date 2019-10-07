@@ -198,6 +198,16 @@ def do_get(request, query_id, _conn_name=None):
     )
 
 
+def get_one(request, query_id, pk_value, _conn_name=None):
+    query = get_object_or_404(PersistentQuery, query_id=query_id)
+    conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
+    source, pk_field = query.insert_pk.split("/")
+    sql = apply_params_to_wrapped_sql(
+        query.sql_query, request.GET.get("columns"), "{} = '{}'".format(pk_field, pk_value)
+    )
+    return exec_sql_with_result(sql, connections[conn_name].cursor())
+
+
 def do_delete(request, query_id, pk, _conn_name=None):
     query = get_query_obj(query_id)
     conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
