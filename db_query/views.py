@@ -298,7 +298,7 @@ def service_error_response(response, status):
 def get_query_source(source, query):
     if not query.sql_query:
         return source
-    sql = query.sql_query + "\n" + query.sql_search_were
+    sql = query.sql_query + "\n" + query.sql_search_where
     return "({}) qsearch".format(sql.replace("{_search_}", "'%%'"))
 
 
