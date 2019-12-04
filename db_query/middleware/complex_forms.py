@@ -127,7 +127,7 @@ def adapt_column(column, get_validation_fn):
         "field-kind": FIELD_KINDS.get(column.get("tipo"), "D"),
         "required": column.get("obrigatorio") == YES,
         "visible": column.get("visivel") == YES,
-        "search_visible": column.get("visivel_pesquisa") == YES,
+        "search-visible": column.get("visivel_pesquisa") == YES,
         "read-only": column.get("read_only") == YES,
         "persistent?": column.get("gravar") == YES,
         "data-type": DATA_TYPES.get(column.get("data_type"), "char"),
