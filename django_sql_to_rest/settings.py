@@ -128,7 +128,7 @@ if DEBUG:
 # to apply raw sql to specific connection
 #
 # from django.db import connections
-# cursor = connections['minipcp'].cursor()
+# cursor = connections['minipcp'].cursor() # change 'minipcp' for the specific connection name
 # cursor.execute(some_query)
 # row = cursor.fetchone()
 
