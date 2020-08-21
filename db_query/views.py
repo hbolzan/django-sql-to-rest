@@ -181,26 +181,30 @@ def do_get(request, query_id, _conn_name=None):
     query = get_object_or_404(PersistentQuery, query_id=query_id)
     conn_name = _conn_name or query.conn_name or DEFAULT_CONN_NAME
     exec_sql_fn = lambda sql: exec_sql_with_result(sql, connections[conn_name].cursor())
-    columns = request.GET.get("columns")
-    where = request.GET.get("where")
     depth = int(request.GET.get("depth", 0))
-    order_by = request.GET.get("order")
-    sql = replace_query_params(
-        query.sql_query + "\n" + (query.sql_search_where or ""), request_data_to_dict(request.GET), None
-    )
+    sql = do_get_sql(request, query)
     data = apply_middleware(
-        get_children(
-            query,
-            exec_sql_fn(apply_params_to_wrapped_sql(sql, columns, where, order_by)),
-            depth,
-            exec_sql_fn
-        ),
+        get_children(query, exec_sql_fn(sql), depth, exec_sql_fn),
         request.GET.get("middleware"),
         lambda conn: lambda sql: exec_sql_with_result(sql, connections[conn or conn_name].cursor())
     )
     return HttpResponse(
         persistent_query_data_as_json(query.name, data),
         content_type="application/json"
+    )
+
+
+def do_get_sql(request, query_obj):
+    search = request.GET.get("_search_")
+    return apply_params_to_wrapped_sql(
+        replace_query_params(
+            query_obj.sql_query + ("\n" + (query_obj.sql_search_where or "") if search else ""),
+            request_data_to_dict(request.GET),
+            None
+        ),
+        request.GET.get("columns"),
+        request.GET.get("where"),
+        request.GET.get("order")
     )
 
 

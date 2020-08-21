@@ -10,6 +10,7 @@ FIELD_KINDS = {
     "C": "yes-no",
     "D": "data",
     "L": "lookup",
+    "X": "x-lookup",
 }
 
 DATA_TYPES = {
@@ -99,6 +100,10 @@ def mark_key_column(column, lookup_columns_names):
 def merge_lookup_column(column, key_columns, exec_sql_fn, get_validation_fn):
     # find corresponding data column
     if column.get("tipo") == "L":
+        lookup_options = process_lookup_options(column, exec_sql_fn)
+        if len(lookup_options) > 30:
+            column["tipo"] = "X"
+            lookup_options = []
         key_field = column.get("lookup_campos_chave")
         try:
             key_column = next(filter(lambda c: c.get("campo") == key_field, key_columns))
@@ -109,7 +114,7 @@ def merge_lookup_column(column, key_columns, exec_sql_fn, get_validation_fn):
                     "name": key_field,
                     "data-type": DATA_TYPES.get(key_column.get("data_type"), "char"),
                     "default": valor_default if valor_default else None,
-                    "options": process_lookup_options(column, exec_sql_fn),
+                    "options": lookup_options,
                 }
             )
         except IndexError:
