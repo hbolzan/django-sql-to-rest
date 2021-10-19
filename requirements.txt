@@ -5,7 +5,7 @@ psycopg2-binary==2.8.3
 pytz==2018.7
 six==1.12.0
 simplejson==3.16.0
-nameko==2.11.0
+nameko==2.14.0
 git+https://github.com/hbolzan/sql-to-rest-services-common.git
 django-mptt==0.10.0
 django-mptt-admin==0.7.1
